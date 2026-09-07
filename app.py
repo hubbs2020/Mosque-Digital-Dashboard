@@ -109,108 +109,43 @@ jumaa_jamaat_dt = parse_time("13:30")
 
 # 99 Names of Allah in sequence
 names_of_allah = [
-    ("الرَّحْمَنُ", "AR-RAHMAAN"),
-    ("الرَّحِيمُ", "AR-RAHEEM"),
-    ("الْمَلِكُ", "AL-MALIK"),
-    ("الْقُدُّوسُ", "AL-QUDDUS"),
-    ("السَّلاَمُ", "AS-SALAM"),
-    ("الْمُؤْمِنُ", "AL-MU’MIN"),
-    ("الْمُهَيْمِنُ", "AL-MUHAYMIN"),
-    ("الْعَزِيزُ", "AL-AZIZ"),
-    ("الْجَبَّارُ", "AL-JABBAR"),
-    ("الْمُتَكَبِّرُ", "AL-MUTAKABBIR"),
-    ("الْخَالِقُ", "AL-KHAALIQ"),
-    ("الْبَارِئُ", "AL-BAARI"),
-    ("الْمُصَوِّرُ", "AL-MUSAWWIR"),
-    ("الْغَفَّارُ", "AL-GHAFFAR"),
-    ("الْقَهَّارُ", "AL-QAHHAR"),
-    ("الْوَهَّابُ", "AL-WAHHAAB"),
-    ("الرَّزَّاقُ", "AR-RAZZAAQ"),
-    ("الْفَتَّاحُ", "AL-FATTAAH"),
-    ("الْعَلِيمُ", "AL-‘ALEEM"),
-    ("الْقَابِضُ", "AL-QAABID"),
-    ("الْبَاسِطُ", "AL-BAASIT"),
-    ("الْخَافِضُ", "AL-KHAAFIDH"),
-    ("الرَّافِعُ", "AR-RAAFI’"),
-    ("الْمُعِزُّ", "AL-MU’IZZ"),
-    ("الْمُذِلُّ", "AL-MUZIL"),
-    ("السَّمِيعُ", "AS-SAMEE’"),
-    ("الْبَصِيرُ", "AL-BASEER"),
-    ("الْحَكَمُ", "AL-HAKAM"),
-    ("الْعَدْلُ", "AL-‘ADL"),
-    ("اللَّطِيفُ", "AL-LATEEF"),
-    ("الْخَبِيرُ", "AL-KHABEER"),
-    ("الْحَلِيمُ", "AL-HALEEM"),
-    ("الْعَظِيمُ", "AL-‘AZEEM"),
-    ("الْغَفُورُ", "AL-GHAFOOR"),
-    ("الشَّكُورُ", "ASH-SHAKOOR"),
-    ("الْعَلِيُّ", "AL-‘ALEE"),
-    ("الْكَبِيرُ", "AL-KABEER"),
-    ("الْحَفِيظُ", "AL-HAFEEDH"),
-    ("الْمُقِيتُ", "AL-MUQEET"),
-    ("الْحَسِيبُ", "AL-HASEEB"),
-    ("الْجَلِيلُ", "AL-JALEEL"),
-    ("الْكَرِيمُ", "AL-KAREEM"),
-    ("الرَّقِيبُ", "AR-RAQEEB"),
-    ("الْمُجِيبُ", "AL-MUJEEB"),
-    ("الْوَاسِعُ", "AL-WAASI’"),
-    ("الْحَكِيمُ", "AL-HAKEEM"),
-    ("الْوَدُودُ", "AL-WADUD"),
-    ("الْمَجِيدُ", "AL-MAJEED"),
-    ("الْبَاعِثُ", "AL-BA’ITH"),
-    ("الشَّهِيدُ", "ASH-SHAHEED"),
-    ("الْحَقُّ", "AL-HAQQ"),
-    ("الْوَكِيلُ", "AL-WAKEEL"),
-    ("الْقَوِيُّ", "AL-QAWIYY"),
-    ("الْمَتِينُ", "AL-MATEEN"),
-    ("الْوَلِيُّ", "AL-WALIYY"),
-    ("الْحَمِيدُ", "AL-HAMEED"),
-    ("الْمُحْصِي", "AL-MUHSEE"),
-    ("الْمُبْدِئُ", "AL-MUBDI"),
-    ("الْمُعِيدُ", "AL-MUEED"),
-    ("الْمُحْيِي", "AL-MUHYI"),
-    ("الْمُمِيتُ", "AL-MUMEET"),
-    ("الْحَيُّ", "AL-HAYY"),
-    ("الْقَيُّومُ", "AL-QAYYOOM"),
-    ("الْوَاجِدُ", "AL-WAAJID"),
-    ("الْمَاجِدُ", "AL-MAAJID"),
-    ("الْوَاحِدُ", "AL-WAAHID"),
-    ("الْأَحَدُ", "AL-AHAD"),
-    ("الصَّمَدُ", "AS-SAMAD"),
-    ("الْقَادِرُ", "AL-QADEER"),
-    ("الْمُقْتَدِرُ", "AL-MUQTADIR"),
-    ("الْمُقَدِّمُ", "AL-MUQADDIM"),
-    ("الْمُؤَخِّرُ", "AL-MU’AKHKHIR"),
-    ("الْأَوَّلُ", "AL-AWWAL"),
-    ("الْآخِرُ", "AL-AAKHIR"),
-    ("الظَّاهِرُ", "AZ-ZAAHIR"),
-    ("الْبَاطِنُ", "AL-BAATIN"),
-    ("الْوَالِي", "AL-WAALI"),
-    ("الْمُتَعَالِي", "AL-MUTA’ALI"),
-    ("الْبَرُّ", "AL-BARR"),
-    ("التَّوَابُ", "AT-TAWWAB"),
-    ("الْمُنْتَقِمُ", "AL-MUNTAQIM"),
-    ("الْعَفُوُّ", "AL-‘AFUWW"),
-    ("الرَّؤُوفُ", "AR-RA’OOF"),
-    ("مَالِكُ الْمُلْكِ", "MAALIK-UL-MULK"),
-    ("ذُو الْجَلَالِ وَالْإِكْرَامِ", "DHUL-JALAALI WAL-IKRAAM"),
-    ("الْمُقْسِطُ", "AL-MUQSIT"),
-    ("الْجَامِعُ", "AL-JAAMI’"),
-    ("الْغَنِيُّ", "AL-GHANIYY"),
-    ("الْمُغْنِي", "AL-MUGHNI"),
-    ("الْمَانِعُ", "AL-MANI’"),
-    ("الضَّارُّ", "AD-DHARR"),
-    ("النَّافِعُ", "AN-NAFI’"),
-    ("النُّورُ", "AN-NUR"),
-    ("الْهَادِي", "AL-HAADI"),
-    ("الْبَدِيعُ", "AL-BADEE’"),
-    ("الْبَاقِي", "AL-BAAQI"),
-    ("الْوَارِثُ", "AL-WAARITH"),
-    ("الْرَّشِيدُ", "AR-RASHEED"),
+    ("الرَّحْمَنُ", "AR-RAHMAAN"), ("الرَّحِيمُ", "AR-RAHEEM"), ("الْمَلِكُ", "AL-MALIK"),
+    ("الْقُدُّوسُ", "AL-QUDDUS"), ("السَّلاَمُ", "AS-SALAM"), ("الْمُؤْمِنُ", "AL-MU’MIN"),
+    ("الْمُهَيْمِنُ", "AL-MUHAYMIN"), ("الْعَزِيزُ", "AL-AZIZ"), ("الْجَبَّارُ", "AL-JABBAR"),
+    ("الْمُتَكَبِّرُ", "AL-MUTAKABBIR"), ("الْخَالِقُ", "AL-KHAALIQ"), ("الْبَارِئُ", "AL-BAARI"),
+    ("الْمُصَوِّرُ", "AL-MUSAWWIR"), ("الْغَفَّارُ", "AL-GHAFFAR"), ("الْقَهَّارُ", "AL-QAHHAR"),
+    ("الْوَهَّابُ", "AL-WAHHAAB"), ("الرَّزَّاقُ", "AR-RAZZAAQ"), ("الْفَتَّاحُ", "AL-FATTAAH"),
+    ("الْعَلِيمُ", "AL-‘ALEEM"), ("الْقَابِضُ", "AL-QAABID"), ("الْبَاسِطُ", "AL-BAASIT"),
+    ("الْخَافِضُ", "AL-KHAAFIDH"), ("الرَّافِعُ", "AR-RAAFI’"), ("الْمُعِزُّ", "AL-MU’IZZ"),
+    ("الْمُذِلُّ", "AL-MUZIL"), ("السَّمِيعُ", "AS-SAMEE’"), ("الْبَصِيرُ", "AL-BASEER"),
+    ("الْحَكَمُ", "AL-HAKAM"), ("الْعَدْلُ", "AL-‘ADL"), ("اللَّطِيفُ", "AL-LATEEF"),
+    ("الْخَبِيرُ", "AL-KHABEER"), ("الْحَلِيمُ", "AL-HALEEM"), ("الْعَظِيمُ", "AL-‘AZEEM"),
+    ("الْغَفُورُ", "AL-GHAFOOR"), ("الشَّكُورُ", "ASH-SHAKOOR"), ("الْعَلِيُّ", "AL-‘ALEE"),
+    ("الْكَبِيرُ", "AL-KABEER"), ("الْحَفِيظُ", "AL-HAFEEDH"), ("الْمُقِيتُ", "AL-MUQEET"),
+    ("الْحَسِيبُ", "AL-HASEEB"), ("الْجَلِيلُ", "AL-JALEEL"), ("الْكَرِيمُ", "AL-KAREEM"),
+    ("الرَّقِيبُ", "AR-RAQEEB"), ("الْمُجِيبُ", "AL-MUJEEB"), ("الْوَاسِعُ", "AL-WAASI’"),
+    ("الْحَكِيمُ", "AL-HAKEEM"), ("الْوَدُودُ", "AL-WADUD"), ("الْمَجِيدُ", "AL-MAJEED"),
+    ("الْبَاعِثُ", "AL-BA’ITH"), ("الشَّهِيدُ", "ASH-SHAHEED"), ("الْحَقُّ", "AL-HAQQ"),
+    ("الْوَكِيلُ", "AL-WAKEEL"), ("الْقَوِيُّ", "AL-QAWIYY"), ("الْمَتِينُ", "AL-MATEEN"),
+    ("الْوَلِيُّ", "AL-WALIYY"), ("الْحَمِيدُ", "AL-HAMEED"), ("الْمُحْصِي", "AL-MUHSEE"),
+    ("الْمُبْدِئُ", "AL-MUBDI"), ("الْمُعِيدُ", "AL-MUEED"), ("الْمُحْيِي", "AL-MUHYI"),
+    ("الْمُمِيتُ", "AL-MUMEET"), ("الْحَيُّ", "AL-HAYY"), ("الْقَيُّومُ", "AL-QAYYOOM"),
+    ("الْوَاجِدُ", "AL-WAAJID"), ("الْمَاجِدُ", "AL-MAAJID"), ("الْوَاحِدُ", "AL-WAAHID"),
+    ("الْأَحَدُ", "AL-AHAD"), ("الصَّمَدُ", "AS-SAMAD"), ("الْقَادِرُ", "AL-QADEER"),
+    ("الْمُقْتَدِرُ", "AL-MUQTADIR"), ("الْمُقَدِّمُ", "AL-MUQADDIM"), ("الْمُؤَخِّرُ", "AL-MU’AKHKHIR"),
+    ("الْأَوَّلُ", "AL-AWWAL"), ("الْآخِرُ", "AL-AAKHIR"), ("الظَّاهِرُ", "AZ-ZAAHIR"),
+    ("الْبَاطِنُ", "AL-BAATIN"), ("الْوَالِي", "AL-WAALI"), ("الْمُتَعَالِي", "AL-MUTA’ALI"),
+    ("الْبَرُّ", "AL-BARR"), ("التَّوَابُ", "AT-TAWWAB"), ("الْمُنْتَقِمُ", "AL-MUNTAQIM"),
+    ("الْعَفُوُّ", "AL-‘AFUWW"), ("الرَّؤُوفُ", "AR-RA’OOF"), ("مَالِكُ الْمُلْكِ", "MAALIK-UL-MULK"),
+    ("ذُو الْجَلَالِ وَالْإِكْرَامِ", "DHUL-JALAALI WAL-IKRAAM"), ("الْمُقْسِطُ", "AL-MUQSIT"),
+    ("الْجَامِعُ", "AL-JAAMI’"), ("الْغَنِيُّ", "AL-GHANIYY"), ("الْمُغْنِي", "AL-MUGHNI"),
+    ("الْمَانِعُ", "AL-MANI’"), ("الضَّارُّ", "AD-DHARR"), ("النَّافِعُ", "AN-NAFI’"),
+    ("النُّورُ", "AN-NUR"), ("الْهَادِي", "AL-HAADI"), ("الْبَدِيعُ", "AL-BADEE’"),
+    ("الْبَاقِي", "AL-BAAQI"), ("الْوَارِثُ", "AL-WAARITH"), ("الْرَّشِيدُ", "AR-RASHEED"),
     ("الصَّبُورُ", "AS-SABOOR")
 ]
 
-# All 99 blessed Names/Titles of Prophet Muhammad (S.A.W.S.)
+# 99 Names of Prophet Muhammad (S.A.W.S.)
 names_of_muhammad = [
     ("مُحَمَّد", "Muhammad"), ("أَحْمَد", "Ahmad"), ("حَامِد", "Hamid"), ("مَحْمُود", "Mahmud"),
     ("قَاسِم", "Qasim"), ("عَاقِب", "Aqib"), ("حَاشِر", "Hashir"), ("مَاحِي", "Mahi"),
@@ -327,7 +262,7 @@ else:
     btn_text = "#ffffff"
     btn_border = "rgba(255, 255, 255, 0.3)"
 
-# Color pool for Kalima Tayyiba rotating every 2 minutes based on minute index
+# Color pool for Kalima Tayyiba rotating every 2 minutes
 kalima_colors = [
     "#34d399", "#38bdf8", "#f59e0b", "#f43f5e", "#a78bfa", 
     "#fbbf24", "#6ee7b7", "#60a5fa", "#f87171", "#c084fc"
@@ -363,28 +298,22 @@ st.markdown(f"""
         font-family: {active_font_family} !important;
     }}
 
-    .kalima-banner-box {{
+    .bismillah-static-container {{
         width: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 6px 0;
-        margin-bottom: 4px;
-        background-color: transparent;
+        text-align: center;
+        padding: 10px 0 25px 0;
+        margin-bottom: 10px;
     }}
 
-    .kalima-arabic-text {{
+    .bismillah-text {{
         font-family: 'Amiri', serif;
-        width: 17cm !important;
-        max-width: 100% !important;
         font-size: 3.6rem;
         font-weight: 700;
-        color: {active_kalima_color};
-        text-align: center;
-        text-shadow: 0 0 25px {active_kalima_color}aa;
+        color: #34d399;
+        text-shadow: 0 0 18px #34d399aa;
         direction: rtl;
-        line-height: 1.25;
-        letter-spacing: 1px;
+        line-height: 1.3;
+        margin: 0;
     }}
 
     .allah-name-box {{
@@ -593,15 +522,16 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# 1. Full Width Bold Kalima Header
-st.markdown(f"""
-<div class="kalima-banner-box">
-    <div class="kalima-arabic-text">لَا إِلٰهَ إِلَّا اللهُ مُحَمَّدٌ رَسُولُ اللهِ</div>
+# 1. Static Bismillah Header
+st.markdown("""
+<div class="bismillah-static-container">
+    <div class="bismillah-text">بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
 </div>
 """, unsafe_allow_html=True)
 
-# 2. Dua Ticker Marquee Component (Including all original duas)
+# 2. Scrolling Kalima Tayyiba & Dua Ticker Component
 duas_list = [
+    "لَا إِلٰهَ إِلَّا اللهُ مُحَمَّدٌ رَسُولُ اللهِ",
     "لَا إِلٰهَ إِلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ يُحْيِي وَيُمِيتُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ",
     "سُبْحَانَ اللهِ وَالْحَمْدُ لِلَّهِ وَلَا إِلٰهَ إِلَّا اللهُ وَاللهُ أَكْبَرُ",
     "سُبْحَانَ اللهِ وَبِحَمْدِهِ سُبْحَانَ اللهِ الْعَظِيمِ وَبِحَمْدِهِ أَسْتَغْفِرُ اللهَ",
@@ -619,8 +549,18 @@ duas_list = [
     "أَسْتَغْفِرُ اللهَ رَبَّ الْبَرَايَا أَسْتَغْفِرُ اللهَ مِنَ الْخَطَايَا"
 ]
 
-ticker_colors = ["#0284c7", "#d97706", "#059669", "#dc2626", "#8b5cf6"] if is_day else ["#34d399", "#f59e0b", "#38bdf8", "#f43f5e", "#a78bfa"]
-colored_duas = [f"<span style='color: {ticker_colors[i % len(ticker_colors)]};'>{dua}</span>" for i, dua in enumerate(duas_list)]
+ticker_colors = ["#34d399", "#38bdf8", "#f59e0b", "#f43f5e", "#a78bfa"] if not is_day else ["#047857", "#0284c7", "#d97706", "#dc2626", "#7c3aed"]
+
+# Set highlighted style specifically for Kalima Tayyiba in the marquee ticker
+colored_duas = []
+for i, dua in enumerate(duas_list):
+    c = ticker_colors[i % len(ticker_colors)]
+    if i == 0:
+        # Highlight Kalima Tayyiba with dynamic active_kalima_color and larger size
+        colored_duas.append(f"<span style='color: {active_kalima_color}; font-size: 2.6rem; font-weight: 800;'>{dua}</span>")
+    else:
+        colored_duas.append(f"<span style='color: {c};'>{dua}</span>")
+
 dua_string = " &nbsp;&nbsp;&nbsp; 🕋 &nbsp;&nbsp;&nbsp; ".join(colored_duas)
 
 ticker_html = f"""
@@ -652,7 +592,7 @@ ticker_html = f"""
 </body>
 </html>
 """
-components.html(ticker_html, height=65)
+components.html(ticker_html, height=70)
 
 # 3. Time Calculations & Jama'at Countdown/Beep Logic
 is_friday = (now_hyd.weekday() == 4)
@@ -686,7 +626,6 @@ dome_img_path = os.path.join(base_dir, "Madina.jpg")
 kaaba_img_path = os.path.join(base_dir, "Kaaba.jpg")
 
 with col_left:
-    # Names of Prophet Muhammad (S.A.W.S.) display right above the Madina image
     st.markdown(f"""
     <div class="muhammad-name-box">
         <div class="muhammad-arabic-display">{active_muhammad_ar}</div>
@@ -766,7 +705,6 @@ with col_center:
     """, unsafe_allow_html=True)
 
 with col_right:
-    # 99 Names of Allah display right above the Kaaba image
     st.markdown(f"""
     <div class="allah-name-box">
         <div class="allah-arabic-display">{active_allah_ar}</div>

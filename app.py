@@ -176,7 +176,7 @@ names_of_muhammad = [
 # Color pool for rotation
 rotation_colors = ["#34d399", "#38bdf8", "#f59e0b", "#f43f5e", "#a78bfa", "#fbbf24", "#6ee7b7", "#60a5fa", "#f87171", "#c084fc"]
 
-# Calculate active indices based on current Unix epoch time (changes every 10 seconds)
+# Calculate active indices based on current Unix epoch time
 epoch_seconds = int(time.time())
 allah_index = (epoch_seconds // 10) % len(names_of_allah)
 muhammad_index = (epoch_seconds // 10) % len(names_of_muhammad)
@@ -551,17 +551,15 @@ duas_list = [
 
 ticker_colors = ["#34d399", "#38bdf8", "#f59e0b", "#f43f5e", "#a78bfa"] if not is_day else ["#047857", "#0284c7", "#d97706", "#dc2626", "#7c3aed"]
 
-# Set highlighted style specifically for Kalima Tayyiba in the marquee ticker
 colored_duas = []
 for i, dua in enumerate(duas_list):
     c = ticker_colors[i % len(ticker_colors)]
     if i == 0:
-        # Highlight Kalima Tayyiba with dynamic active_kalima_color and larger size
         colored_duas.append(f"<span style='color: {active_kalima_color}; font-size: 2.6rem; font-weight: 800;'>{dua}</span>")
     else:
         colored_duas.append(f"<span style='color: {c};'>{dua}</span>")
 
-dua_string = " &nbsp;&nbsp;&nbsp; 🕋 &nbsp;&nbsp;&nbsp; ".join(colored_duas)
+single_pass_str = " &nbsp;&nbsp;&nbsp; 🕋 &nbsp;&nbsp;&nbsp; ".join(colored_duas)
 
 ticker_html = f"""
 <!DOCTYPE html>
@@ -570,7 +568,8 @@ ticker_html = f"""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@700&display=swap');
         body {{ margin: 0; padding: 0; background: transparent; overflow: hidden; }}
-        .ticker-wrap {{
+        
+        .ticker-container {{
             width: 100%;
             border-top: 1px solid {ticker_border};
             border-bottom: 1px solid {ticker_border};
@@ -579,15 +578,44 @@ ticker_html = f"""
             padding: 8px 0;
             overflow: hidden;
             white-space: nowrap;
+            display: flex;
+            direction: ltr;
+            cursor: pointer;
+            user-select: none;
         }}
-        .ticker-text {{ font-family: 'Amiri', serif; font-size: 2.2rem; font-weight: 700; direction: rtl; }}
+
+        .ticker-track {{
+            display: flex;
+            white-space: nowrap;
+            will-change: transform;
+            animation: marquee-ltr 240s linear infinite; /* Slowed down to 240s */
+        }}
+
+        /* Pause animation when holding or hovering with mouse */
+        .ticker-container:hover .ticker-track,
+        .ticker-container:active .ticker-track {{
+            animation-play-state: paused;
+        }}
+
+        .ticker-text {{
+            font-family: 'Amiri', serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            padding-right: 2rem;
+        }}
+
+        @keyframes marquee-ltr {{
+            0% {{ transform: translateX(-50%); }}
+            100% {{ transform: translateX(0%); }}
+        }}
     </style>
 </head>
 <body>
-    <div class="ticker-wrap">
-        <marquee behavior="scroll" direction="right" scrollamount="6">
-            <span class="ticker-text">{dua_string}</span>
-        </marquee>
+    <div class="ticker-container" title="Click and hold to pause scrolling">
+        <div class="ticker-track">
+            <div class="ticker-text">{single_pass_str} &nbsp;&nbsp;&nbsp; 🕋 &nbsp;&nbsp;&nbsp; </div>
+            <div class="ticker-text">{single_pass_str} &nbsp;&nbsp;&nbsp; 🕋 &nbsp;&nbsp;&nbsp; </div>
+        </div>
     </div>
 </body>
 </html>

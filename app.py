@@ -107,7 +107,7 @@ asr_jamaat_dt = parse_time("17:00")
 isha_jamaat_dt = parse_time("20:00")
 jumaa_jamaat_dt = parse_time("13:30")
 
-# 99 Names of Allah in sequence
+# 99 Names of Allah
 names_of_allah = [
     ("الرَّحْمَنُ", "AR-RAHMAAN"), ("الرَّحِيمُ", "AR-RAHEEM"), ("الْمَلِكُ", "AL-MALIK"),
     ("الْقُدُّوسُ", "AL-QUDDUS"), ("السَّلاَمُ", "AS-SALAM"), ("الْمُؤْمِنُ", "AL-MU’MIN"),
@@ -325,6 +325,7 @@ st.markdown(f"""
         padding: 10px;
         text-align: center;
         margin-bottom: 12px;
+        animation: nameMagnify 1.8s ease-in-out infinite alternate;
     }}
 
     .allah-arabic-display {{
@@ -353,6 +354,7 @@ st.markdown(f"""
         padding: 10px;
         text-align: center;
         margin-bottom: 12px;
+        animation: nameMagnify 1.8s ease-in-out infinite alternate;
     }}
 
     .muhammad-arabic-display {{
@@ -370,6 +372,16 @@ st.markdown(f"""
         font-weight: 700;
         color: {text_primary};
         margin-top: 4px;
+    }}
+
+    @keyframes nameMagnify {{
+        0% {{
+            transform: scale(1);
+        }}
+        100% {{
+            transform: scale(1.08);
+            box-shadow: 0 0 25px {active_item_color}66;
+        }}
     }}
 
     [data-testid="stImage"] img {{
@@ -529,14 +541,14 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 2. Scrolling Kalima Tayyiba & Dua Ticker Component
+# 2. Continuous Left-to-Right Scrolling Ticker with Magnifying Zoom Effect
 duas_list = [
     "لَا إِلٰهَ إِلَّا اللهُ مُحَمَّدٌ رَسُولُ اللهِ",
     "لَا إِلٰهَ إِلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ يُحْيِي وَيُمِيتُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ",
     "سُبْحَانَ اللهِ وَالْحَمْدُ لِلَّهِ وَلَا إِلٰهَ إِلَّا اللهُ وَاللهُ أَكْبَرُ",
     "سُبْحَانَ اللهِ وَبِحَمْدِهِ سُبْحَانَ اللهِ الْعَظِيمِ وَبِحَمْدِهِ أَسْتَغْفِرُ اللهَ",
     "رَبِّ اغْفِرْ لَنَا وَتُبْ عَلَيْنَا إِنَّكَ أَنْتَ التَّوَّابُ الرَّحِيمُ",
-    "اللَّهُمَّ صَلِّ عَلَى سَيِّدِنَا مُحَمَّدٍ اللَّهُمَّ صَلِّ عَلَيْهِ وَآلِهِ وَصَحْبِهِ وَسَلِّمْ",
+    "اللَّهُمَّ صَلِّ عَلَى سَيِّدِنَا مُحَمَّدٍ اللَّهُمَّ صَلِّ عَلَيْهِ وَآلِهِ وَصَحْبِهِ وَسَلَّمْ",
     "أَعُوذُ بِكَلِمَاتِ اللهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ",
     "بِسْمِ اللهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ",
     "رَضِينَا بِاللهِ رَبًّا وَبِالْإِسْلَامِ دِينًا وَبِسَيِّدِنَا مُحَمَّدٍ صَلَّى اللهُ عَلَيْهِ وَآلِهِ وَسَلَّمَ نَبِيًّا",
@@ -555,11 +567,13 @@ colored_duas = []
 for i, dua in enumerate(duas_list):
     c = ticker_colors[i % len(ticker_colors)]
     if i == 0:
-        colored_duas.append(f"<span style='color: {active_kalima_color}; font-size: 2.6rem; font-weight: 800;'>{dua}</span>")
+        colored_duas.append(f"<span class='dua-item' style='color: {active_kalima_color}; font-size: 2.6rem; font-weight: 800;'>{dua}</span>")
     else:
-        colored_duas.append(f"<span style='color: {c};'>{dua}</span>")
+        colored_duas.append(f"<span class='dua-item' style='color: {c};'>{dua}</span>")
 
-single_pass_str = " &nbsp;&nbsp;&nbsp; 🕋 &nbsp;&nbsp;&nbsp; ".join(colored_duas)
+separator_icon = "<span class='ticker-sep'>🕋</span>"
+single_pass_str = f" {separator_icon} ".join(colored_duas)
+gap_spacer = "<span style='display: inline-block; width: 250px;'></span>"
 
 ticker_html = f"""
 <!DOCTYPE html>
@@ -575,26 +589,19 @@ ticker_html = f"""
             border-bottom: 1px solid {ticker_border};
             background: {ticker_bg};
             backdrop-filter: blur(8px);
-            padding: 8px 0;
-            overflow: hidden;
+            padding: 20px 0;
+            overflow-x: auto;
             white-space: nowrap;
             display: flex;
+            align-items: center;
             direction: ltr;
             cursor: pointer;
             user-select: none;
+            scrollbar-width: none;
         }}
-
-        .ticker-track {{
-            display: flex;
-            white-space: nowrap;
-            will-change: transform;
-            animation: marquee-ltr 240s linear infinite; /* Slowed down to 240s */
-        }}
-
-        /* Pause animation when holding or hovering with mouse */
-        .ticker-container:hover .ticker-track,
-        .ticker-container:active .ticker-track {{
-            animation-play-state: paused;
+        
+        .ticker-container::-webkit-scrollbar {{
+            display: none;
         }}
 
         .ticker-text {{
@@ -602,25 +609,92 @@ ticker_html = f"""
             font-size: 2.2rem;
             font-weight: 700;
             padding-right: 2rem;
+            display: inline-block;
         }}
 
-        @keyframes marquee-ltr {{
-            0% {{ transform: translateX(-50%); }}
-            100% {{ transform: translateX(0%); }}
+        .dua-item {{
+            display: inline-block;
+            margin: 0 60px;
+            padding: 10px 0;
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), text-shadow 0.3s ease;
+            transform-origin: center center;
+        }}
+
+        .dua-item.zoomed {{
+            transform: scale(1.35);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.7);
+        }}
+
+        .ticker-sep {{
+            display: inline-block;
+            margin: 0 30px;
+            font-size: 1.8rem;
+            vertical-align: middle;
         }}
     </style>
 </head>
 <body>
-    <div class="ticker-container" title="Click and hold to pause scrolling">
-        <div class="ticker-track">
-            <div class="ticker-text">{single_pass_str} &nbsp;&nbsp;&nbsp; 🕋 &nbsp;&nbsp;&nbsp; </div>
-            <div class="ticker-text">{single_pass_str} &nbsp;&nbsp;&nbsp; 🕋 &nbsp;&nbsp;&nbsp; </div>
+    <div class="ticker-container" id="ticker" title="Click and hold to pause scrolling">
+        <div class="ticker-text" id="content">
+            {gap_spacer} {single_pass_str}
         </div>
     </div>
+
+    <script>
+        const container = document.getElementById('ticker');
+        const content = document.getElementById('content');
+        const duaItems = document.querySelectorAll('.dua-item');
+        
+        let isPaused = false;
+        const scrollSpeed = 0.8;
+
+        const maxScroll = content.scrollWidth - container.clientWidth;
+        
+        const savedPos = localStorage.getItem('mosque_ticker_pos_ltr');
+        if (savedPos !== null) {{
+            container.scrollLeft = parseFloat(savedPos);
+        }} else {{
+            container.scrollLeft = maxScroll;
+        }}
+
+        container.addEventListener('mouseenter', () => {{ isPaused = true; }});
+        container.addEventListener('mouseleave', () => {{ isPaused = false; }});
+        container.addEventListener('mousedown', () => {{ isPaused = true; }});
+        container.addEventListener('mouseup', () => {{ isPaused = false; }});
+
+        function checkZoomEffect() {{
+            const centerPoint = window.innerWidth / 2;
+
+            duaItems.forEach(item => {{
+                const rect = item.getBoundingClientRect();
+                if (rect.left <= centerPoint && rect.right >= centerPoint) {{
+                    item.classList.add('zoomed');
+                }} else {{
+                    item.classList.remove('zoomed');
+                }}
+            }});
+        }}
+
+        function step() {{
+            if (!isPaused) {{
+                container.scrollLeft -= scrollSpeed;
+                localStorage.setItem('mosque_ticker_pos_ltr', container.scrollLeft);
+
+                if (container.scrollLeft <= 0) {{
+                    container.scrollLeft = content.scrollWidth - container.clientWidth;
+                }}
+
+                checkZoomEffect();
+            }}
+            requestAnimationFrame(step);
+        }}
+
+        requestAnimationFrame(step);
+    </script>
 </body>
 </html>
 """
-components.html(ticker_html, height=70)
+components.html(ticker_html, height=110)
 
 # 3. Time Calculations & Jama'at Countdown/Beep Logic
 is_friday = (now_hyd.weekday() == 4)
@@ -709,28 +783,16 @@ with col_center:
         {"event": "🌙 FAJR", "azaan": fajr_azan, "jamaat": fajr_jamaat, "arabic": "فَجْر"},
         {"event": "☀️ ZUHR", "azaan": zuhr_azan, "jamaat": zuhr_jamaat, "arabic": "ظُهْر"},
         {"event": "🌤️ ASR", "azaan": asr_azan, "jamaat": asr_jamaat, "arabic": "عَصْر"},
-        {"event": "🌇 MAGHRIB", "azaan": maghrib_azan, "jamaat": maghrib_jamaat, "arabic": "مَغْرِب"},
-        {"event": "🌙 ISHA", "azaan": isha_azan, "jamaat": isha_jamaat, "arabic": "عِشَاء"},
+        {"event": "🌆 MAGHRIB", "azaan": maghrib_azan, "jamaat": maghrib_jamaat, "arabic": "مَغْرِب"},
+        {"event": "🌃 ISHA", "azaan": isha_azan, "jamaat": isha_jamaat, "arabic": "عِشَاء"},
         {"event": "🕌 JUMAA", "azaan": jumaa_azan, "jamaat": jumaa_jamaat, "arabic": "جُمُعَة"}
     ]
 
-    rows_html = "".join([f"<tr><td style='text-align:left; font-weight:700;'>{item['event']}</td><td class='led-amber'>{item['azaan']}</td><td class='led-green'>{item['jamaat']}</td><td class='arabic-text' style='text-align:right;'>{item['arabic']}</td></tr>" for item in prayers_data])
+    table_rows = ""
+    for row in prayers_data:
+        table_rows += f"<tr><td style='text-align: left; font-weight: 700;'>{row['event']}</td><td class='led-amber'>{row['azaan']}</td><td class='led-green'>{row['jamaat']}</td><td class='arabic-text'>{row['arabic']}</td></tr>"
 
-    st.markdown(f"""
-    <div class="table-box">
-        <table class="timing-table">
-            <thead>
-                <tr>
-                    <th style="text-align:left;">PRAYER</th>
-                    <th>AZAN</th>
-                    <th>JAMA'AT</th>
-                    <th style="text-align:right;">نَماز</th>
-                </tr>
-            </thead>
-            <tbody>{rows_html}</tbody>
-        </table>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="table-box"><table class="timing-table"><thead><tr><th style="text-align: left;">PRAYER</th><th>AZAN</th><th>JAMA'AT</th><th>ARABIC</th></tr></thead><tbody>{table_rows}</tbody></table></div>""", unsafe_allow_html=True)
 
 with col_right:
     st.markdown(f"""
@@ -742,5 +804,6 @@ with col_right:
     
     st.image(kaaba_img_path, use_container_width=True)
 
+# 5. Continuous 1-Second Smooth UI Refresh Loop
 time.sleep(1)
 st.rerun()

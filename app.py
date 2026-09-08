@@ -102,19 +102,19 @@ fajr_offset = int(fajr_duration * 0.4)  # 40%
 fajr_azan_dt = add_minutes(fajr_start, fajr_offset)
 fajr_jamaat_dt = add_minutes(fajr_azan_dt, 15)
 
-# ---- STANDARD OFFSETS for others ----
-zuhr_azan = format_12hr(dhuhr)
-zuhr_jamaat = format_12hr(add_minutes(dhuhr, 15))
-asr_azan = format_12hr(asr)
-asr_jamaat = format_12hr(add_minutes(asr, 15))
+# ---- HYDERABAD FIXED "ROUND OF TIMINGS" (MODIFY THESE FOR YOUR MOSQUE) ----
+zuhr_azan = "12:45 PM"
+zuhr_jamaat = "01:15 PM"
+asr_azan = "04:30 PM"
+asr_jamaat = "05:00 PM"
+isha_azan = "07:45 PM"
+isha_jamaat = "08:00 PM"
+jumaa_azan = "12:30 PM"
+jumaa_jamaat = "01:30 PM"
+
+# ---- MAGHRIB (Remains dynamic, as it depends on sunset) ----
 maghrib_azan = format_12hr(maghrib)
 maghrib_jamaat = format_12hr(add_minutes(maghrib, 3))
-isha_azan = format_12hr(isha)
-isha_jamaat = format_12hr(add_minutes(isha, 15))
-
-# ---- JUMAA (Floating based on Dhuhr) ----
-jumaa_azan = format_12hr(add_minutes(dhuhr, -15))  # Khutbah starts 15 min before Dhuhr
-jumaa_jamaat = format_12hr(add_minutes(dhuhr, 15))
 
 # ---- Solar / Spiritual times ----
 zawal_dt = add_minutes(dhuhr, -10)
@@ -125,12 +125,20 @@ sunrise_str = format_12hr(sunrise)
 
 # ---- JAMA'AT LIST for Countdown ----
 is_friday = (now_hyd.weekday() == 4)
+# Parse the fixed times into datetime objects for countdown logic
+zuhr_jamaat_dt = datetime.strptime(zuhr_jamaat, "%I:%M %p")
+asr_jamaat_dt = datetime.strptime(asr_jamaat, "%I:%M %p")
+maghrib_jamaat_dt = datetime.strptime(maghrib_jamaat, "%I:%M %p")
+isha_jamaat_dt = datetime.strptime(isha_jamaat, "%I:%M %p")
+fajr_jamaat_dt = datetime.strptime(format_12hr(fajr_jamaat_dt), "%I:%M %p")
+jumaa_jamaat_dt = datetime.strptime(jumaa_jamaat, "%I:%M %p")
+
 jamaat_schedule = [
     ("FAJR", fajr_jamaat_dt),
-    ("JUMAA" if is_friday else "ZUHR", add_minutes(dhuhr, 15) if not is_friday else add_minutes(dhuhr, 15)),
-    ("ASR", add_minutes(asr, 15)),
-    ("MAGHRIB", add_minutes(maghrib, 3)),
-    ("ISHA", add_minutes(isha, 15))
+    ("JUMAA" if is_friday else "ZUHR", jumaa_jamaat_dt if is_friday else zuhr_jamaat_dt),
+    ("ASR", asr_jamaat_dt),
+    ("MAGHRIB", maghrib_jamaat_dt),
+    ("ISHA", isha_jamaat_dt)
 ]
 
 # ---- COUNTDOWN & SMART BEEP (Silent at night & Friday Khutbah) ----
@@ -138,6 +146,7 @@ countdown_msg = None
 trigger_beep = False
 
 for name, j_dt in jamaat_schedule:
+    # Convert j_dt (which is a datetime object) to today's date
     j_time_today = datetime.strptime(j_dt.strftime("%H:%M:00"), "%H:%M:%S")
     diff_seconds = (j_time_today - current_time_dt).total_seconds()
     if 0 < diff_seconds <= 60:

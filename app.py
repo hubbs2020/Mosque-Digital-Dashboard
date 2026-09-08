@@ -16,7 +16,7 @@ st.set_page_config(
 # ============================================================
 # 1. AUTO-LOCATION (IP-based, falls back to Hyderabad)
 # ============================================================
-@st.cache_data(ttl=86400)  # Cache location for 1 day
+@st.cache_data(ttl=86400)
 def get_location():
     try:
         req = urllib.request.Request("http://ip-api.com/json/", headers={'User-Agent': 'Mozilla/5.0'})
@@ -31,7 +31,7 @@ def get_location():
 city, country, LAT, LON = get_location()
 
 # ============================================================
-# 2. WEATHER (Uses auto-detected LAT/LON)
+# 2. WEATHER
 # ============================================================
 @st.cache_data(ttl=600)
 def get_live_temp():
@@ -46,7 +46,7 @@ def get_live_temp():
         return "30°C"
 
 # ============================================================
-# 3. PRAYER TIMES & HIJRI (Uses auto-location)
+# 3. PRAYER TIMES & HIJRI
 # ============================================================
 @st.cache_data(ttl=3600)
 def get_prayer_data():
@@ -72,14 +72,13 @@ def add_minutes(dt_obj, mins):
     return dt_obj + timedelta(minutes=mins)
 
 # ============================================================
-# 4. FETCH & COMPUTE DYNAMIC SCHEDULE
+# 4. FETCH & COMPUTE SCHEDULE
 # ============================================================
 now_hyd = datetime.now(pytz.timezone("Asia/Kolkata"))
 current_time_dt = datetime.strptime(now_hyd.strftime("%H:%M:%S"), "%H:%M:%S")
 temp_display = get_live_temp()
 timings, hijri_date = get_prayer_data()
 
-# ---- Fallback times if API fails ----
 if timings:
     fajr_start = parse_time(timings['Fajr'])
     sunrise = parse_time(timings['Sunrise'])
@@ -88,7 +87,6 @@ if timings:
     maghrib = parse_time(timings['Maghrib'])
     isha = parse_time(timings['Isha'])
 else:
-    # Hard fallback if API breaks
     sunrise = parse_time("06:22")
     maghrib = parse_time("18:32")
     fajr_start = parse_time("05:00")
@@ -96,27 +94,47 @@ else:
     asr = parse_time("16:00")
     isha = parse_time("19:30")
 
-# ---- SEASONAL FAJR OFFSET (40% between Fajr & Sunrise) ----
-fajr_duration = (sunrise - fajr_start).total_seconds() / 60  # in minutes
-fajr_offset = int(fajr_duration * 0.4)  # 40%
-fajr_azan_dt = add_minutes(fajr_start, fajr_offset)
-fajr_jamaat_dt = add_minutes(fajr_azan_dt, 15)
+# ============================================================
+# 5. FIXED "ROUND OF TIMINGS" FOR HYDERABAD
+# ============================================================
 
-# ---- HYDERABAD FIXED "ROUND OF TIMINGS" (MODIFY THESE FOR YOUR MOSQUE) ----
+# ---- FAJR (Fixed) ----
+fajr_azan = "05:15 AM"
+fajr_jamaat = "05:30 AM"
+fajr_azan_dt = datetime.strptime(fajr_azan, "%I:%M %p")
+fajr_jamaat_dt = datetime.strptime(fajr_jamaat, "%I:%M %p")
+
+# ---- ZUHR (Fixed) ----
 zuhr_azan = "12:45 PM"
 zuhr_jamaat = "01:15 PM"
+zuhr_azan_dt = datetime.strptime(zuhr_azan, "%I:%M %p")
+zuhr_jamaat_dt = datetime.strptime(zuhr_jamaat, "%I:%M %p")
+
+# ---- ASR (Fixed) ----
 asr_azan = "04:30 PM"
 asr_jamaat = "05:00 PM"
-isha_azan = "07:45 PM"
-isha_jamaat = "08:00 PM"
-jumaa_azan = "12:30 PM"
-jumaa_jamaat = "01:30 PM"
+asr_azan_dt = datetime.strptime(asr_azan, "%I:%M %p")
+asr_jamaat_dt = datetime.strptime(asr_jamaat, "%I:%M %p")
 
-# ---- MAGHRIB (Remains dynamic, as it depends on sunset) ----
+# ---- MAGHRIB (Dynamic - depends on sunset) ----
 maghrib_azan = format_12hr(maghrib)
 maghrib_jamaat = format_12hr(add_minutes(maghrib, 3))
+maghrib_azan_dt = datetime.strptime(maghrib_azan, "%I:%M %p")
+maghrib_jamaat_dt = datetime.strptime(maghrib_jamaat, "%I:%M %p")
 
-# ---- Solar / Spiritual times ----
+# ---- ISHA (Fixed) ----
+isha_azan = "07:45 PM"
+isha_jamaat = "08:00 PM"
+isha_azan_dt = datetime.strptime(isha_azan, "%I:%M %p")
+isha_jamaat_dt = datetime.strptime(isha_jamaat, "%I:%M %p")
+
+# ---- JUMU'AH (Fixed) ----
+jumaa_azan = "12:30 PM"
+jumaa_jamaat = "01:30 PM"
+jumaa_azan_dt = datetime.strptime(jumaa_azan, "%I:%M %p")
+jumaa_jamaat_dt = datetime.strptime(jumaa_jamaat, "%I:%M %p")
+
+# ---- Solar / Spiritual times (dynamic) ----
 zawal_dt = add_minutes(dhuhr, -10)
 zawal_str = format_12hr(zawal_dt)
 ishraq_str = format_12hr(add_minutes(sunrise, 15))
@@ -125,14 +143,6 @@ sunrise_str = format_12hr(sunrise)
 
 # ---- JAMA'AT LIST for Countdown ----
 is_friday = (now_hyd.weekday() == 4)
-# Parse the fixed times into datetime objects for countdown logic
-zuhr_jamaat_dt = datetime.strptime(zuhr_jamaat, "%I:%M %p")
-asr_jamaat_dt = datetime.strptime(asr_jamaat, "%I:%M %p")
-maghrib_jamaat_dt = datetime.strptime(maghrib_jamaat, "%I:%M %p")
-isha_jamaat_dt = datetime.strptime(isha_jamaat, "%I:%M %p")
-fajr_jamaat_dt = datetime.strptime(format_12hr(fajr_jamaat_dt), "%I:%M %p")
-jumaa_jamaat_dt = datetime.strptime(jumaa_jamaat, "%I:%M %p")
-
 jamaat_schedule = [
     ("FAJR", fajr_jamaat_dt),
     ("JUMAA" if is_friday else "ZUHR", jumaa_jamaat_dt if is_friday else zuhr_jamaat_dt),
@@ -141,19 +151,17 @@ jamaat_schedule = [
     ("ISHA", isha_jamaat_dt)
 ]
 
-# ---- COUNTDOWN & SMART BEEP (Silent at night & Friday Khutbah) ----
+# ---- COUNTDOWN & SMART BEEP ----
 countdown_msg = None
 trigger_beep = False
 
 for name, j_dt in jamaat_schedule:
-    # Convert j_dt (which is a datetime object) to today's date
     j_time_today = datetime.strptime(j_dt.strftime("%H:%M:00"), "%H:%M:%S")
     diff_seconds = (j_time_today - current_time_dt).total_seconds()
     if 0 < diff_seconds <= 60:
         countdown_msg = f"⏳ {name} JAMA'AT IN {int(diff_seconds)} SECONDS"
         break
     elif diff_seconds == 0 or diff_seconds == 1:
-        # SILENT MODE: Mute between Isha and Fajr, and on Friday 12:30-2:00 PM
         is_night_time = current_time_dt >= parse_time("20:00") or current_time_dt <= parse_time("04:30")
         is_friday_khutbah = is_friday and (parse_time("12:30") <= current_time_dt <= parse_time("14:00"))
         if not is_night_time and not is_friday_khutbah:
@@ -161,7 +169,7 @@ for name, j_dt in jamaat_schedule:
         break
 
 # ============================================================
-# 5. CINEMATIC SKY BACKGROUND (Auto-gradient)
+# 6. CINEMATIC SKY BACKGROUND
 # ============================================================
 def get_sky_gradient():
     t = current_time_dt.time()
@@ -173,24 +181,24 @@ def get_sky_gradient():
     isha_t = isha.time()
 
     if t < fajr_t:
-        return "radial-gradient(circle at bottom, #0b1120 0%, #020617 100%)"  # Deep Night
+        return "radial-gradient(circle at bottom, #0b1120 0%, #020617 100%)"
     elif fajr_t <= t < sunrise_t:
-        return "radial-gradient(circle at bottom, #fef08a 0%, #f59e0b 40%, #1e293b 100%)"  # Golden Dawn
+        return "radial-gradient(circle at bottom, #fef08a 0%, #f59e0b 40%, #1e293b 100%)"
     elif sunrise_t <= t < dhuhr_t:
-        return "radial-gradient(circle at top, #38bdf8 0%, #0284c7 70%, #0c4a6e 100%)"  # Bright Morning
+        return "radial-gradient(circle at top, #38bdf8 0%, #0284c7 70%, #0c4a6e 100%)"
     elif dhuhr_t <= t < asr_t:
-        return "radial-gradient(circle at top, #e0f2fe 0%, #7dd3fc 60%, #0284c7 100%)"  # Midday Soft Blue
+        return "radial-gradient(circle at top, #e0f2fe 0%, #7dd3fc 60%, #0284c7 100%)"
     elif asr_t <= t < maghrib_t:
-        return "radial-gradient(circle at bottom, #fdba74 0%, #ea580c 50%, #431407 100%)"  # Golden Afternoon
+        return "radial-gradient(circle at bottom, #fdba74 0%, #ea580c 50%, #431407 100%)"
     elif maghrib_t <= t < isha_t:
-        return "radial-gradient(circle at bottom, #fca5a5 0%, #dc2626 40%, #450a0a 100%)"  # Fiery Sunset
+        return "radial-gradient(circle at bottom, #fca5a5 0%, #dc2626 40%, #450a0a 100%)"
     else:
-        return "radial-gradient(circle at bottom, #172554 0%, #020617 100%)"  # Deep Indigo Night
+        return "radial-gradient(circle at bottom, #172554 0%, #020617 100%)"
 
 bg_style = get_sky_gradient()
 
 # ============================================================
-# 6. CSS THEME VARIABLES
+# 7. CSS THEME VARIABLES
 # ============================================================
 card_bg = "linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(11, 15, 25, 0.8))"
 card_border = "rgba(255, 255, 255, 0.15)"
@@ -205,7 +213,7 @@ ticker_bg = "rgba(9, 18, 29, 0.7)"
 ticker_border = "rgba(16, 185, 129, 0.6)"
 
 # ============================================================
-# 7. ROTATING NAMES (99 Names of Allah & Prophet)
+# 8. ROTATING NAMES (99 Names of Allah & Prophet)
 # ============================================================
 names_of_allah = [
     ("الرَّحْمَنُ", "AR-RAHMAAN"), ("الرَّحِيمُ", "AR-RAHEEM"), ("الْمَلِكُ", "AL-MALIK"),
@@ -283,7 +291,7 @@ active_item_color = rotation_colors[color_index]
 active_muhammad_color = rotation_colors[muhammad_color_index]
 
 # ============================================================
-# 8. DYNAMIC CSS + SKY BACKGROUND
+# 9. DYNAMIC CSS + SKY BACKGROUND
 # ============================================================
 st.markdown(f"""
 <style>
@@ -369,7 +377,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# 9. BISMILLAH HEADER
+# 10. BISMILLAH HEADER
 # ============================================================
 st.markdown("""
 <div class="bismillah-static-container">
@@ -378,7 +386,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# 10. TICKER (Continuous Left-to-Right Scrolling with Zoom Effect)
+# 11. TICKER (Continuous Scrolling with Zoom Effect)
 # ============================================================
 duas_list = [
     "لَا إِلٰهَ إِلَّا اللهُ مُحَمَّدٌ رَسُولُ اللهِ",
@@ -476,7 +484,7 @@ ticker_html = f"""
 components.html(ticker_html, height=110)
 
 # ============================================================
-# 11. MAIN LAYOUT (3 Columns)
+# 12. MAIN LAYOUT (3 Columns)
 # ============================================================
 col_left, col_center, col_right = st.columns([1.2, 2.6, 1.2])
 
@@ -530,7 +538,7 @@ with col_center:
     """, unsafe_allow_html=True)
 
     prayers_data = [
-        {"event": "🌙 FAJR", "azaan": format_12hr(fajr_azan_dt), "jamaat": format_12hr(fajr_jamaat_dt), "arabic": "فَجْر"},
+        {"event": "🌙 FAJR", "azaan": fajr_azan, "jamaat": fajr_jamaat, "arabic": "فَجْر"},
         {"event": "☀️ ZUHR", "azaan": zuhr_azan, "jamaat": zuhr_jamaat, "arabic": "ظُهْر"},
         {"event": "🌤️ ASR", "azaan": asr_azan, "jamaat": asr_jamaat, "arabic": "عَصْر"},
         {"event": "🌆 MAGHRIB", "azaan": maghrib_azan, "jamaat": maghrib_jamaat, "arabic": "مَغْرِب"},
@@ -562,7 +570,7 @@ with col_right:
     st.image("Kaaba.jpg", use_container_width=True)
 
 # ============================================================
-# 12. CONTINUOUS REFRESH (For live clock & countdown)
+# 13. CONTINUOUS REFRESH (For live clock & countdown)
 # ============================================================
 time.sleep(1)
 st.rerun()

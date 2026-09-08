@@ -105,13 +105,13 @@ fajr_azan_dt = datetime.strptime(fajr_azan, "%I:%M %p")
 fajr_jamaat_dt = datetime.strptime(fajr_jamaat, "%I:%M %p")
 
 # ---- ZUHR (Fixed) ----
-zuhr_azan = "12:45 PM"
+zuhr_azan = "01:00 PM"
 zuhr_jamaat = "01:15 PM"
 zuhr_azan_dt = datetime.strptime(zuhr_azan, "%I:%M %p")
 zuhr_jamaat_dt = datetime.strptime(zuhr_jamaat, "%I:%M %p")
 
 # ---- ASR (Fixed) ----
-asr_azan = "04:30 PM"
+asr_azan = "04:45 PM"
 asr_jamaat = "05:00 PM"
 asr_azan_dt = datetime.strptime(asr_azan, "%I:%M %p")
 asr_jamaat_dt = datetime.strptime(asr_jamaat, "%I:%M %p")

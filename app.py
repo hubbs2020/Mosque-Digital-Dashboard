@@ -72,7 +72,19 @@ def add_minutes(dt_obj, mins):
     return dt_obj + timedelta(minutes=mins)
 
 # ============================================================
-# 4. FETCH & COMPUTE SCHEDULE
+# 4. RAMADAN DETECTION
+# ============================================================
+def is_ramadan(hijri_month):
+    return hijri_month == 9
+
+def get_ramadan_info(hijri_day, hijri_month):
+    if hijri_month == 9:
+        if hijri_day <= 29:
+            return f"🌙 Ramadan {hijri_day} | Suhoor ends before Fajr | Iftar at Maghrib"
+    return None
+
+# ============================================================
+# 5. FETCH & COMPUTE SCHEDULE
 # ============================================================
 now_hyd = datetime.now(pytz.timezone("Asia/Kolkata"))
 current_time_dt = datetime.strptime(now_hyd.strftime("%H:%M:%S"), "%H:%M:%S")
@@ -95,7 +107,7 @@ else:
     isha = parse_time("19:30")
 
 # ============================================================
-# 5. FIXED "ROUND OF TIMINGS" FOR HYDERABAD
+# 6. FIXED "ROUND OF TIMINGS" FOR HYDERABAD
 # ============================================================
 
 # ---- FAJR (Fixed) ----
@@ -105,13 +117,13 @@ fajr_azan_dt = datetime.strptime(fajr_azan, "%I:%M %p")
 fajr_jamaat_dt = datetime.strptime(fajr_jamaat, "%I:%M %p")
 
 # ---- ZUHR (Fixed) ----
-zuhr_azan = "01:00 PM"
+zuhr_azan = "12:45 PM"
 zuhr_jamaat = "01:15 PM"
 zuhr_azan_dt = datetime.strptime(zuhr_azan, "%I:%M %p")
 zuhr_jamaat_dt = datetime.strptime(zuhr_jamaat, "%I:%M %p")
 
 # ---- ASR (Fixed) ----
-asr_azan = "04:45 PM"
+asr_azan = "04:30 PM"
 asr_jamaat = "05:00 PM"
 asr_azan_dt = datetime.strptime(asr_azan, "%I:%M %p")
 asr_jamaat_dt = datetime.strptime(asr_jamaat, "%I:%M %p")
@@ -141,6 +153,15 @@ ishraq_str = format_12hr(add_minutes(sunrise, 15))
 chast_str = format_12hr(add_minutes(sunrise, 120))
 sunrise_str = format_12hr(sunrise)
 
+# ---- Ramadan Detection ----
+hijri_month = None
+hijri_day = None
+if timings:
+    hijri_month = int(timings.get('hijri', {}).get('month', {}).get('number', 0))
+    hijri_day = int(timings.get('hijri', {}).get('day', 0))
+is_ramadan_active = is_ramadan(hijri_month) if hijri_month else False
+ramadan_info = get_ramadan_info(hijri_day, hijri_month) if is_ramadan_active else None
+
 # ---- JAMA'AT LIST for Countdown ----
 is_friday = (now_hyd.weekday() == 4)
 jamaat_schedule = [
@@ -169,7 +190,7 @@ for name, j_dt in jamaat_schedule:
         break
 
 # ============================================================
-# 6. CINEMATIC SKY BACKGROUND
+# 7. CINEMATIC SKY BACKGROUND
 # ============================================================
 def get_sky_gradient():
     t = current_time_dt.time()
@@ -198,7 +219,28 @@ def get_sky_gradient():
 bg_style = get_sky_gradient()
 
 # ============================================================
-# 7. CSS THEME VARIABLES
+# 8. DYNAMIC BISMILLAH COLOR (Adapts to sky)
+# ============================================================
+def get_bismillah_color():
+    t = current_time_dt.time()
+    sunrise_t = sunrise.time()
+    maghrib_t = maghrib.time()
+    
+    # Daytime (bright): White with strong glow
+    if sunrise_t <= t < maghrib_t:
+        return "#ffffff", "0 0 40px rgba(255,255,255,0.7)"
+    # Golden hour (sunrise/sunset): Warm gold
+    elif (t >= sunrise_t and t < sunrise_t + timedelta(hours=1)) or \
+         (t >= maghrib_t - timedelta(hours=1) and t < maghrib_t):
+        return "#fbbf24", "0 0 40px rgba(251, 191, 36, 0.8)"
+    # Night: Emerald green (original)
+    else:
+        return "#34d399", "0 0 18px #34d399aa"
+
+bismillah_color, bismillah_shadow = get_bismillah_color()
+
+# ============================================================
+# 9. CSS THEME VARIABLES
 # ============================================================
 card_bg = "linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(11, 15, 25, 0.8))"
 card_border = "rgba(255, 255, 255, 0.15)"
@@ -213,7 +255,7 @@ ticker_bg = "rgba(9, 18, 29, 0.7)"
 ticker_border = "rgba(16, 185, 129, 0.6)"
 
 # ============================================================
-# 8. ROTATING NAMES (99 Names of Allah & Prophet)
+# 10. ROTATING NAMES (99 Names of Allah & Prophet)
 # ============================================================
 names_of_allah = [
     ("الرَّحْمَنُ", "AR-RAHMAAN"), ("الرَّحِيمُ", "AR-RAHEEM"), ("الْمَلِكُ", "AL-MALIK"),
@@ -291,7 +333,7 @@ active_item_color = rotation_colors[color_index]
 active_muhammad_color = rotation_colors[muhammad_color_index]
 
 # ============================================================
-# 9. DYNAMIC CSS + SKY BACKGROUND
+# 11. DYNAMIC CSS + SKY BACKGROUND
 # ============================================================
 st.markdown(f"""
 <style>
@@ -305,12 +347,34 @@ st.markdown(f"""
     header, footer {{visibility: hidden;}}
     .block-container {{ padding-top: 0.5rem !important; padding-bottom: 0rem !important; }}
 
+    /* Ramadan Banner */
+    .ramadan-banner {{
+        background: linear-gradient(135deg, rgba(52, 211, 153, 0.2), rgba(16, 185, 129, 0.1));
+        border: 2px solid #34d399;
+        border-radius: 12px;
+        padding: 10px;
+        margin-bottom: 12px;
+        text-align: center;
+        animation: ramadanPulse 2s ease-in-out infinite alternate;
+    }}
+    .ramadan-text {{
+        font-family: 'Amiri', serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #34d399;
+    }}
+    @keyframes ramadanPulse {{
+        0% {{ opacity: 0.8; transform: scale(0.99); }}
+        100% {{ opacity: 1; transform: scale(1.01); }}
+    }}
+
     .bismillah-static-container {{
         width: 100%; text-align: center; padding: 10px 0 25px 0; margin-bottom: 10px;
     }}
     .bismillah-text {{
         font-family: 'Amiri', serif; font-size: 3.6rem; font-weight: 700;
-        color: #34d399; text-shadow: 0 0 18px #34d399aa; direction: rtl; line-height: 1.3; margin: 0;
+        color: {bismillah_color}; text-shadow: {bismillah_shadow}; direction: rtl; line-height: 1.3; margin: 0;
+        transition: color 2s ease, text-shadow 2s ease;
     }}
     .allah-name-box, .muhammad-name-box {{
         background: {card_bg}; backdrop-filter: blur(12px); border: 1px solid {card_border};
@@ -377,7 +441,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# 10. BISMILLAH HEADER
+# 12. BISMILLAH HEADER
 # ============================================================
 st.markdown("""
 <div class="bismillah-static-container">
@@ -385,8 +449,16 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# ---- Ramadan Banner (if active) ----
+if ramadan_info:
+    st.markdown(f"""
+    <div class="ramadan-banner">
+        <div class="ramadan-text">🌙 {ramadan_info}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
 # ============================================================
-# 11. TICKER (Continuous Scrolling with Zoom Effect)
+# 13. TICKER (Continuous Scrolling with Zoom Effect)
 # ============================================================
 duas_list = [
     "لَا إِلٰهَ إِلَّا اللهُ مُحَمَّدٌ رَسُولُ اللهِ",
@@ -484,7 +556,7 @@ ticker_html = f"""
 components.html(ticker_html, height=110)
 
 # ============================================================
-# 12. MAIN LAYOUT (3 Columns)
+# 14. MAIN LAYOUT (3 Columns)
 # ============================================================
 col_left, col_center, col_right = st.columns([1.2, 2.6, 1.2])
 
@@ -570,7 +642,7 @@ with col_right:
     st.image("Kaaba.jpg", use_container_width=True)
 
 # ============================================================
-# 13. CONTINUOUS REFRESH (For live clock & countdown)
+# 15. CONTINUOUS REFRESH (For live clock & countdown)
 # ============================================================
 time.sleep(1)
 st.rerun()

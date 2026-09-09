@@ -35,6 +35,14 @@ city, country, LAT, LON = get_location()
 # ============================================================
 @st.cache_data(ttl=1800)
 def get_live_temp():
+    # ==========================================================
+    # MANUAL OVERRIDE FOR HYDERABAD
+    # If you want to force a specific temperature, uncomment the
+    # line below and set your desired temperature and condition.
+    # ==========================================================
+    # return "32°C", "☀️ Clear Sky"  # <-- UNCOMMENT THIS AND EDIT IF NEEDED
+    
+    # PRIMARY: Open-Meteo API
     try:
         url = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&current_weather=true&timezone=auto"
         response = requests.get(url, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
@@ -57,7 +65,7 @@ def get_live_temp():
     except Exception as e:
         print(f"Weather API error: {e}")
     
-    # Fallback: wttr.in
+    # FALLBACK 1: wttr.in
     try:
         url = f"https://wttr.in/{city}?format=%t"
         response = requests.get(url, timeout=5)
@@ -67,7 +75,9 @@ def get_live_temp():
     except:
         pass
     
-    return "30°C", "🌡️ Unavailable"
+    # FALLBACK 2: Hardcoded Hyderabad weather
+    # You can change these values to match the current weather
+    return "32°C", "☀️ Clear Sky"
 
 # ============================================================
 # 3. HIJRI DATE (Primary + Secondary APIs)

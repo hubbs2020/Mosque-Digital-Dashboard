@@ -1,11 +1,11 @@
+import os
+import json
+import time
+import pytz
+import urllib.request
+from datetime import datetime, timedelta
 import streamlit as st
 import streamlit.components.v1 as components
-from datetime import datetime, timedelta
-import pytz
-import time
-import urllib.request
-import json
-import os
 
 st.set_page_config(
     page_title="Mosque Digital Dashboard",
@@ -13,31 +13,37 @@ st.set_page_config(
     layout="wide"
 )
 
-# Robust Multi-Source Live Weather Fetcher
+# 1. Robust Multi-Source Live Weather Fetcher
 @st.cache_data(ttl=600)
-def get_live_temp():
+def get_live_weather():
+    # PRIMARY: wttr.in for Hyderabad
     try:
         url = "https://wttr.in/Hyderabad?format=j1"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode())
             temp_c = data['current_condition'][0]['temp_C']
-            condition = data['current_condition'][0]['weatherDesc'][0]['value']
-            return f"{temp_c}°C | {condition}"
+            condition = data['current_condition'][0]['weatherDesc'][0]['value'].lower()
+            return f"{temp_c}°C | {condition.title()}", condition
     except Exception:
         pass
 
+    # FALLBACK 1: Open-Meteo API
     try:
         url = "https://api.open-meteo.com/v1/forecast?latitude=17.3850&longitude=78.4867&current_weather=true"
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode())
             temp_c = int(round(data['current_weather']['temperature']))
-            return f"{temp_c}°C"
+            code = data['current_weather']['weathercode']
+            cond = "rain" if code in [51, 53, 55, 61, 63, 65, 80, 81, 82] else "clear"
+            return f"{temp_c}°C", cond
     except Exception:
-        return "30°C"
+        pass
 
-# Fetch Prayer Times & Hijri Calendar
+    return "30°C", "clear"
+
+# 2. Fetch Prayer Times & Hijri Calendar
 @st.cache_data(ttl=3600)
 def get_hyderabad_prayer_times():
     try:
@@ -50,7 +56,7 @@ def get_hyderabad_prayer_times():
             hijri_date_str = f"{hijri['day']} {hijri['month']['en']} {hijri['year']} AH"
             return timings, hijri_date_str
     except Exception:
-        return None, ""
+        return None, "27 Rabi' al-Awwal 1448 AH"
 
 def parse_time(time_str):
     time_clean = time_str.split(" ")[0]
@@ -63,7 +69,7 @@ def add_minutes(dt_obj, mins):
     return dt_obj + timedelta(minutes=mins)
 
 # Fetch Data
-temp_display = get_live_temp()
+temp_display, weather_cond = get_live_weather()
 api_timings, hijri_date = get_hyderabad_prayer_times()
 
 now_hyd = datetime.now(pytz.timezone("Asia/Kolkata"))
@@ -173,10 +179,8 @@ names_of_muhammad = [
     ("بَشِير", "Bashir"), ("نَذِير", "Nadhir"), ("دَاعِي", "Da'i"), ("رَحْمَة", "Rahmah")
 ]
 
-# Color pool for rotation
 rotation_colors = ["#34d399", "#38bdf8", "#f59e0b", "#f43f5e", "#a78bfa", "#fbbf24", "#6ee7b7", "#60a5fa", "#f87171", "#c084fc"]
 
-# Calculate active indices based on current Unix epoch time
 epoch_seconds = int(time.time())
 allah_index = (epoch_seconds // 10) % len(names_of_allah)
 muhammad_index = (epoch_seconds // 10) % len(names_of_muhammad)
@@ -188,7 +192,6 @@ active_muhammad_ar, active_muhammad_en = names_of_muhammad[muhammad_index]
 active_item_color = rotation_colors[color_index]
 active_muhammad_color = rotation_colors[muhammad_color_index]
 
-# Fonts pool
 fonts_pool = [
     ("Helvetica", "'Helvetica Neue', Helvetica, Arial, sans-serif"),
     ("Garamond", "Garamond, serif"),
@@ -206,45 +209,101 @@ current_hour = now_hyd.hour
 font_index = (current_hour // 2) % len(fonts_pool)
 active_font_name, active_font_family = fonts_pool[font_index]
 
-# Initialize Theme State
-if 'theme' not in st.session_state:
-    is_day_auto = sunrise_dt.time() <= current_time_dt.time() < maghrib_dt.time()
-    st.session_state.theme = 'night' if not is_day_auto else 'day'
+# 3. Dynamic Weather & Multi-Phase Time Background Engine
+current_time = current_time_dt.time()
+fajr_time = parse_time(api_timings['Fajr']).time() if api_timings else parse_time("05:00").time()
+sunrise_time = parse_time(api_timings['Sunrise']).time() if api_timings else parse_time("06:20").time()
+ishraq_time = add_minutes(parse_time(api_timings['Sunrise']), 45).time() if api_timings else parse_time("07:05").time()
+asr_time = parse_time(api_timings['Asr']).time() if api_timings else parse_time("16:45").time()
+maghrib_time = parse_time(api_timings['Maghrib']).time() if api_timings else parse_time("18:30").time()
 
-# Top Bar with Clean Night/Day Mode Toggle Button
-top_col1, top_col2 = st.columns([8, 2])
-with top_col1:
-    st.empty()
+is_raining = any(w in weather_cond for w in ["rain", "drizzle", "shower", "thunderstorm"])
+is_cloudy = any(w in weather_cond for w in ["cloud", "overcast", "mist", "fog"])
 
-with top_col2:
-    if st.session_state.theme == 'night':
-        if st.button("☀️ Day Mode", key="btn_day", use_container_width=True):
-            st.session_state.theme = 'day'
-            st.rerun()
+if is_raining:
+    bg_style = "radial-gradient(circle at top center, #1e293b 0%, #0f172a 100%)"
+    card_bg = "rgba(30, 41, 59, 0.75)"
+    card_border = "rgba(148, 163, 184, 0.2)"
+    card_shadow = "0 12px 30px rgba(0, 0, 0, 0.6)"
+    text_primary = "#f1f5f9"
+    text_secondary = "#94a3b8"
+    clock_color = "#38bdf8"
+    hijri_color = "#34d399"
+    led_amber = "#f59e0b"
+    led_green = "#10b981"
+    ticker_bg = "rgba(15, 23, 42, 0.75)"
+    ticker_border = "rgba(56, 189, 248, 0.4)"
+
+elif fajr_time <= current_time < sunrise_time:
+    bg_style = "radial-gradient(circle at top center, #1e1b4b 0%, #090d16 100%)"
+    card_bg = "rgba(30, 27, 75, 0.7)"
+    card_border = "rgba(165, 180, 252, 0.2)"
+    card_shadow = "0 12px 30px rgba(0, 0, 0, 0.7)"
+    text_primary = "#f8fafc"
+    text_secondary = "#a5b4fc"
+    clock_color = "#818cf8"
+    hijri_color = "#34d399"
+    led_amber = "#fbbf24"
+    led_green = "#34d399"
+    ticker_bg = "rgba(15, 23, 42, 0.7)"
+    ticker_border = "rgba(129, 140, 248, 0.4)"
+
+elif sunrise_time <= current_time < ishraq_time:
+    bg_style = "radial-gradient(circle at top center, #7c2d12 0%, #1c1917 100%)"
+    card_bg = "rgba(67, 20, 7, 0.75)"
+    card_border = "rgba(251, 146, 60, 0.3)"
+    card_shadow = "0 12px 30px rgba(0, 0, 0, 0.6)"
+    text_primary = "#ffedd5"
+    text_secondary = "#fdba74"
+    clock_color = "#fb923c"
+    hijri_color = "#4ade80"
+    led_amber = "#f59e0b"
+    led_green = "#22c55e"
+    ticker_bg = "rgba(28, 25, 23, 0.75)"
+    ticker_border = "rgba(251, 146, 60, 0.5)"
+
+elif ishraq_time <= current_time < asr_time:
+    if is_cloudy:
+        bg_style = "radial-gradient(circle at top center, #e2e8f0 0%, #94a3b8 100%)"
+        card_bg = "rgba(255, 255, 255, 0.85)"
+        card_border = "rgba(148, 163, 184, 0.4)"
+        card_shadow = "0 10px 25px rgba(0, 0, 0, 0.1)"
+        text_primary = "#0f172a"
+        text_secondary = "#475569"
+        clock_color = "#0284c7"
+        hijri_color = "#047857"
+        led_amber = "#d97706"
+        led_green = "#059669"
+        ticker_bg = "rgba(255, 255, 255, 0.75)"
+        ticker_border = "rgba(148, 163, 184, 0.5)"
     else:
-        if st.button("🌙 Night Mode", key="btn_night", use_container_width=True):
-            st.session_state.theme = 'night'
-            st.rerun()
+        bg_style = "radial-gradient(circle at top center, #e0f2fe 0%, #7dd3fc 100%)"
+        card_bg = "rgba(255, 255, 255, 0.85)"
+        card_border = "rgba(56, 189, 248, 0.4)"
+        card_shadow = "0 10px 25px rgba(0, 0, 0, 0.1)"
+        text_primary = "#0c4a6e"
+        text_secondary = "#0369a1"
+        clock_color = "#0284c7"
+        hijri_color = "#047857"
+        led_amber = "#d97706"
+        led_green = "#059669"
+        ticker_bg = "rgba(255, 255, 255, 0.8)"
+        ticker_border = "rgba(2, 132, 199, 0.5)"
 
-is_day = (st.session_state.theme == 'day')
+elif asr_time <= current_time < maghrib_time:
+    bg_style = "radial-gradient(circle at top center, #581c87 0%, #2e1065 50%, #0f172a 100%)"
+    card_bg = "rgba(88, 28, 135, 0.65)"
+    card_border = "rgba(192, 132, 252, 0.3)"
+    card_shadow = "0 12px 30px rgba(0, 0, 0, 0.7)"
+    text_primary = "#f3e8ff"
+    text_secondary = "#c084fc"
+    clock_color = "#e879f9"
+    hijri_color = "#34d399"
+    led_amber = "#fbbf24"
+    led_green = "#34d399"
+    ticker_bg = "rgba(15, 23, 42, 0.75)"
+    ticker_border = "rgba(192, 132, 252, 0.4)"
 
-# Dynamic CSS Theme Palette
-if is_day:
-    bg_style = "radial-gradient(circle at top center, #f1f5f9 0%, #cbd5e1 100%)"
-    card_bg = "linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(241, 245, 249, 0.9))"
-    card_border = "rgba(0, 0, 0, 0.12)"
-    card_shadow = "0 10px 25px rgba(0, 0, 0, 0.1)"
-    text_primary = "#0f172a"
-    text_secondary = "#475569"
-    clock_color = "#0284c7"
-    hijri_color = "#047857"
-    led_amber = "#d97706"
-    led_green = "#059669"
-    ticker_bg = "rgba(255, 255, 255, 0.7)"
-    ticker_border = "rgba(4, 120, 87, 0.5)"
-    btn_bg = "#ffffff"
-    btn_text = "#0f172a"
-    btn_border = "#047857"
 else:
     bg_style = "radial-gradient(circle at top center, #0d1b2a 0%, #030712 100%)"
     card_bg = "linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(11, 15, 25, 0.85))"
@@ -258,11 +317,8 @@ else:
     led_green = "#10b981"
     ticker_bg = "rgba(9, 18, 29, 0.7)"
     ticker_border = "rgba(16, 185, 129, 0.6)"
-    btn_bg = "rgba(15, 23, 42, 0.8)"
-    btn_text = "#ffffff"
-    btn_border = "rgba(255, 255, 255, 0.3)"
 
-# Color pool for Kalima Tayyiba rotating every 2 minutes
+# Rotating color for Kalima Tayyiba
 kalima_colors = [
     "#34d399", "#38bdf8", "#f59e0b", "#f43f5e", "#a78bfa", 
     "#fbbf24", "#6ee7b7", "#60a5fa", "#f87171", "#c084fc"
@@ -285,17 +341,6 @@ st.markdown(f"""
     .block-container {{
         padding-top: 0.5rem !important;
         padding-bottom: 0rem !important;
-    }}
-
-    div.stButton > button {{
-        background-color: {btn_bg} !important;
-        color: {btn_text} !important;
-        border: 1.5px solid {btn_border} !important;
-        border-radius: 12px !important;
-        font-weight: 700 !important;
-        font-size: 0.95rem !important;
-        box-shadow: {card_shadow} !important;
-        font-family: {active_font_family} !important;
     }}
 
     .bismillah-static-container {{
@@ -375,13 +420,8 @@ st.markdown(f"""
     }}
 
     @keyframes nameMagnify {{
-        0% {{
-            transform: scale(1);
-        }}
-        100% {{
-            transform: scale(1.08);
-            box-shadow: 0 0 25px {active_item_color}66;
-        }}
+        0% {{ transform: scale(1); }}
+        100% {{ transform: scale(1.08); box-shadow: 0 0 25px {active_item_color}66; }}
     }}
 
     [data-testid="stImage"] img {{
@@ -534,21 +574,21 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# 1. Static Bismillah Header
+# 4. Static Bismillah Header
 st.markdown("""
 <div class="bismillah-static-container">
     <div class="bismillah-text">بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
 </div>
 """, unsafe_allow_html=True)
 
-# 2. Continuous Left-to-Right Scrolling Ticker with Magnifying Zoom Effect
+# 5. Continuous Left-to-Right Scrolling Ticker with Calibrated Magnification
 duas_list = [
     "لَا إِلٰهَ إِلَّا اللهُ مُحَمَّدٌ رَسُولُ اللهِ",
     "لَا إِلٰهَ إِلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ يُحْيِي وَيُمِيتُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ",
     "سُبْحَانَ اللهِ وَالْحَمْدُ لِلَّهِ وَلَا إِلٰهَ إِلَّا اللهُ وَاللهُ أَكْبَرُ",
     "سُبْحَانَ اللهِ وَبِحَمْدِهِ سُبْحَانَ اللهِ الْعَظِيمِ وَبِحَمْدِهِ أَسْتَغْفِرُ اللهَ",
     "رَبِّ اغْفِرْ لَنَا وَتُبْ عَلَيْنَا إِنَّكَ أَنْتَ التَّوَّابُ الرَّحِيمُ",
-    "اللَّهُمَّ صَلِّ عَلَى سَيِّدِنَا مُحَمَّدٍ اللَّهُمَّ صَلِّ عَلَيْهِ وَآلِهِ وَصَحْبِهِ وَسَلَّمْ",
+    "اللَّهُمَّ صَلِّ عَلَى سَيِّدِنَا مُحَمَّدٍ اللَّهُمَّ صَلَيْهِ وَآلِهِ وَصَحْبِهِ وَسَلَّمْ",
     "أَعُوذُ بِكَلِمَاتِ اللهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ",
     "بِسْمِ اللهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ",
     "رَضِينَا بِاللهِ رَبًّا وَبِالْإِسْلَامِ دِينًا وَبِسَيِّدِنَا مُحَمَّدٍ صَلَّى اللهُ عَلَيْهِ وَآلِهِ وَسَلَّمَ نَبِيًّا",
@@ -561,15 +601,15 @@ duas_list = [
     "أَسْتَغْفِرُ اللهَ رَبَّ الْبَرَايَا أَسْتَغْفِرُ اللهَ مِنَ الْخَطَايَا"
 ]
 
-ticker_colors = ["#34d399", "#38bdf8", "#f59e0b", "#f43f5e", "#a78bfa"] if not is_day else ["#047857", "#0284c7", "#d97706", "#dc2626", "#7c3aed"]
+ticker_colors = ["#34d399", "#38bdf8", "#f59e0b", "#f43f5e", "#a78bfa"]
 
 colored_duas = []
 for i, dua in enumerate(duas_list):
     c = ticker_colors[i % len(ticker_colors)]
     if i == 0:
-        colored_duas.append(f"<span class='dua-item' style='color: {active_kalima_color}; font-size: 2.6rem; font-weight: 800;'>{dua}</span>")
+        colored_duas.append(f"<span class='dua-item' style='color: {active_kalima_color}; font-size: 2.1rem; font-weight: 800;'>{dua}</span>")
     else:
-        colored_duas.append(f"<span class='dua-item' style='color: {c};'>{dua}</span>")
+        colored_duas.append(f"<span class='dua-item' style='color: {c}; font-size: 2.1rem;'>{dua}</span>")
 
 separator_icon = "<span class='ticker-sep'>🕋</span>"
 single_pass_str = f" {separator_icon} ".join(colored_duas)
@@ -589,7 +629,7 @@ ticker_html = f"""
             border-bottom: 1px solid {ticker_border};
             background: {ticker_bg};
             backdrop-filter: blur(8px);
-            padding: 20px 0;
+            padding: 16px 0;
             overflow-x: auto;
             white-space: nowrap;
             display: flex;
@@ -606,30 +646,37 @@ ticker_html = f"""
 
         .ticker-text {{
             font-family: 'Amiri', serif;
-            font-size: 2.2rem;
-            font-weight: 700;
             padding-right: 2rem;
             display: inline-block;
         }}
 
+        /* Increased spacing (margins & padding) and controlled height so magnification stays isolated */
         .dua-item {{
             display: inline-block;
-            margin: 0 60px;
-            padding: 10px 0;
-            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), text-shadow 0.3s ease;
+            margin: 0 90px;
+            padding: 6px 12px;
+            line-height: 1.4;
+            vertical-align: middle;
+            transition: transform 0.3s ease-in-out, text-shadow 0.3s ease-in-out;
             transform-origin: center center;
+            position: relative;
+            z-index: 1;
         }}
 
+        /* Moderated 1.15x scale factor prevents overlap with neighboring Duas & Kaaba icon */
         .dua-item.zoomed {{
-            transform: scale(1.35);
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.7);
+            transform: scale(1.15);
+            text-shadow: 0 0 16px rgba(255, 255, 255, 0.6);
+            z-index: 2;
         }}
 
         .ticker-sep {{
             display: inline-block;
-            margin: 0 30px;
-            font-size: 1.8rem;
+            margin: 0 45px;
+            font-size: 1.6rem;
             vertical-align: middle;
+            flex-shrink: 0;
+            z-index: 1;
         }}
     </style>
 </head>
@@ -696,7 +743,7 @@ ticker_html = f"""
 """
 components.html(ticker_html, height=110)
 
-# 3. Time Calculations & Jama'at Countdown/Beep Logic
+# 6. Jama'at Countdown & Beep Alert Engine
 is_friday = (now_hyd.weekday() == 4)
 jamaat_schedule = [
     ("FAJR", fajr_jamaat_dt),
@@ -720,7 +767,7 @@ for name, j_dt in jamaat_schedule:
         trigger_beep = True
         break
 
-# 4. Main Dashboard Layout
+# 7. Main Dashboard Grid
 col_left, col_center, col_right = st.columns([1.2, 2.6, 1.2])
 
 base_dir = os.path.dirname(__file__)
@@ -804,6 +851,6 @@ with col_right:
     
     st.image(kaaba_img_path, use_container_width=True)
 
-# 5. Continuous 1-Second Smooth UI Refresh Loop
+# 8. Smooth 1-Second Continuous Refresh Loop
 time.sleep(1)
 st.rerun()

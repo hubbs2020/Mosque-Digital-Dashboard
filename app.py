@@ -219,20 +219,20 @@ def get_sky_gradient():
 bg_style = get_sky_gradient()
 
 # ============================================================
-# 8. DYNAMIC BISMILLAH COLOR (Adapts to sky)
+# 8. DYNAMIC BISMILLAH COLOR (High Contrast: Gold on Blue)
 # ============================================================
 def get_bismillah_color():
     t = current_time_dt.time()
     sunrise_t = sunrise.time()
     maghrib_t = maghrib.time()
     
-    # Daytime (bright): White with strong glow
+    # Daytime (bright blue sky): GOLD for high contrast
     if sunrise_t <= t < maghrib_t:
-        return "#ffffff", "0 0 40px rgba(255,255,255,0.7)"
-    # Golden hour (sunrise/sunset): Warm gold
+        return "#fbbf24", "0 0 40px rgba(251, 191, 36, 0.8)"
+    # Golden hour (sunrise/sunset): Deep Amber
     elif (t >= sunrise_t and t < sunrise_t + timedelta(hours=1)) or \
          (t >= maghrib_t - timedelta(hours=1) and t < maghrib_t):
-        return "#fbbf24", "0 0 40px rgba(251, 191, 36, 0.8)"
+        return "#f59e0b", "0 0 40px rgba(245, 158, 11, 0.9)"
     # Night: Emerald green (original)
     else:
         return "#34d399", "0 0 18px #34d399aa"

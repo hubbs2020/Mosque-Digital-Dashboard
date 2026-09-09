@@ -31,53 +31,15 @@ def get_location():
 city, country, LAT, LON = get_location()
 
 # ============================================================
-# 2. WEATHER (Open-Meteo API with fallback)
+# 2. WEATHER (FORCE FIXED FOR HYDERABAD)
 # ============================================================
 @st.cache_data(ttl=1800)
 def get_live_temp():
     # ==========================================================
-    # MANUAL OVERRIDE FOR HYDERABAD
-    # If you want to force a specific temperature, uncomment the
-    # line below and set your desired temperature and condition.
+    # HARDCODED FOR HYDERABAD - CHANGE THESE VALUES AS NEEDED
+    # Example: return "32°C", "☀️ Clear Sky"
     # ==========================================================
-    # return "32°C", "☀️ Clear Sky"  # <-- UNCOMMENT THIS AND EDIT IF NEEDED
-    
-    # PRIMARY: Open-Meteo API
-    try:
-        url = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&current_weather=true&timezone=auto"
-        response = requests.get(url, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
-        if response.status_code == 200:
-            data = response.json()
-            temp_c = int(round(data['current_weather']['temperature']))
-            weathercode = data['current_weather']['weathercode']
-            
-            conditions = {
-                0: "☀️ Clear Sky", 1: "🌤️ Mostly Clear", 2: "⛅ Partly Cloudy",
-                3: "☁️ Overcast", 45: "🌫️ Foggy", 48: "🌫️ Foggy",
-                51: "🌧️ Light Drizzle", 53: "🌧️ Drizzle", 55: "🌧️ Heavy Drizzle",
-                61: "🌧️ Light Rain", 63: "🌧️ Rain", 65: "🌧️ Heavy Rain",
-                71: "❄️ Light Snow", 73: "❄️ Snow", 75: "❄️ Heavy Snow",
-                80: "🌧️ Light Rain Showers", 81: "🌧️ Rain Showers", 82: "🌧️ Heavy Rain Showers",
-                95: "⛈️ Thunderstorm", 96: "⛈️ Thunderstorm", 99: "⛈️ Thunderstorm"
-            }
-            condition = conditions.get(weathercode, "🌡️ Unknown")
-            return f"{temp_c}°C", condition
-    except Exception as e:
-        print(f"Weather API error: {e}")
-    
-    # FALLBACK 1: wttr.in
-    try:
-        url = f"https://wttr.in/{city}?format=%t"
-        response = requests.get(url, timeout=5)
-        if response.status_code == 200:
-            temp_str = response.text.strip()
-            return temp_str, "🌡️ Live"
-    except:
-        pass
-    
-    # FALLBACK 2: Hardcoded Hyderabad weather
-    # You can change these values to match the current weather
-    return "32°C", "☀️ Clear Sky"
+    return "34°C", "☀️ Clear Sky"
 
 # ============================================================
 # 3. HIJRI DATE (Primary + Secondary APIs)
@@ -156,7 +118,7 @@ def add_minutes(dt_obj, mins):
 now_hyd = datetime.now(pytz.timezone("Asia/Kolkata"))
 current_time_dt = datetime.strptime(now_hyd.strftime("%H:%M:%S"), "%H:%M:%S")
 
-# Get weather
+# Get weather (FORCE FIXED)
 temp_display, condition = get_live_temp()
 
 # Get Hijri date

@@ -31,22 +31,73 @@ def get_location():
 city, country, LAT, LON = get_location()
 
 # ============================================================
-# 2. WEATHER
+# 2. WEATHER (Current Temperature + Condition)
 # ============================================================
-@st.cache_data(ttl=600)
-def get_live_temp():
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def get_weather():
     try:
-        url = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&current_weather=true"
+        url = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&current_weather=true&timezone=auto"
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode())
-            temp_c = int(round(data['current_weather']['temperature']))
-            return f"{temp_c}°C"
-    except:
-        return "30°C"
+            
+            # Current weather
+            current = data['current_weather']
+            temp = int(round(current['temperature']))
+            weathercode = current['weathercode']
+            
+            # Map weather code to condition with emoji
+            conditions = {
+                0: "☀️ Clear Sky",
+                1: "🌤️ Mostly Clear",
+                2: "⛅ Partly Cloudy",
+                3: "☁️ Overcast",
+                45: "🌫️ Foggy",
+                48: "🌫️ Foggy",
+                51: "🌧️ Light Drizzle",
+                53: "🌧️ Drizzle",
+                55: "🌧️ Heavy Drizzle",
+                61: "🌧️ Light Rain",
+                63: "🌧️ Rain",
+                65: "🌧️ Heavy Rain",
+                71: "❄️ Light Snow",
+                73: "❄️ Snow",
+                75: "❄️ Heavy Snow",
+                80: "🌧️ Light Rain Showers",
+                81: "🌧️ Rain Showers",
+                82: "🌧️ Heavy Rain Showers",
+                95: "⛈️ Thunderstorm",
+                96: "⛈️ Thunderstorm with Hail",
+                99: "⛈️ Thunderstorm with Hail"
+            }
+            condition = conditions.get(weathercode, "🌡️ Unknown")
+            
+            return temp, condition
+    except Exception as e:
+        print(f"Weather API error: {e}")
+        return 30, "🌡️ Unavailable"
+
+temp, condition = get_weather()
+temp_display = f"{temp}°C"
 
 # ============================================================
-# 3. PRAYER TIMES & HIJRI
+# 3. HIJRI DATE FETCHER (With Fallback)
+# ============================================================
+def get_hijri_date():
+    try:
+        url = "http://api.aladhan.com/v1/gToH?date=01-01-2020"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode())
+            if data['code'] == 200:
+                hijri = data['data']['hijri']
+                return f"{hijri['day']} {hijri['month']['en']} {hijri['year']} AH"
+    except:
+        pass
+    return "27 Rabi' al-Awwal 1448 AH"
+
+# ============================================================
+# 4. PRAYER TIMES & HIJRI
 # ============================================================
 @st.cache_data(ttl=3600)
 def get_prayer_data():
@@ -60,8 +111,7 @@ def get_prayer_data():
             hijri_str = f"{hijri['day']} {hijri['month']['en']} {hijri['year']} AH"
             return timings, hijri_str
     except:
-        # FALLBACK: Hardcode a default Hijri date if API fails
-        return None, "9 Rabi' al-Awwal 1448 AH"
+        return None, get_hijri_date()
 
 def parse_time(time_str):
     return datetime.strptime(time_str.split(" ")[0], "%H:%M")
@@ -73,7 +123,7 @@ def add_minutes(dt_obj, mins):
     return dt_obj + timedelta(minutes=mins)
 
 # ============================================================
-# 4. RAMADAN DETECTION
+# 5. RAMADAN DETECTION
 # ============================================================
 def is_ramadan(hijri_month):
     return hijri_month == 9
@@ -85,11 +135,10 @@ def get_ramadan_info(hijri_day, hijri_month):
     return None
 
 # ============================================================
-# 5. FETCH & COMPUTE SCHEDULE
+# 6. FETCH & COMPUTE SCHEDULE
 # ============================================================
 now_hyd = datetime.now(pytz.timezone("Asia/Kolkata"))
 current_time_dt = datetime.strptime(now_hyd.strftime("%H:%M:%S"), "%H:%M:%S")
-temp_display = get_live_temp()
 timings, hijri_date = get_prayer_data()
 
 if timings:
@@ -108,7 +157,7 @@ else:
     isha = parse_time("19:30")
 
 # ============================================================
-# 6. FIXED "ROUND OF TIMINGS" FOR HYDERABAD
+# 7. FIXED "ROUND OF TIMINGS" FOR HYDERABAD
 # ============================================================
 
 # ---- FAJR (Fixed) ----
@@ -157,9 +206,12 @@ sunrise_str = format_12hr(sunrise)
 # ---- Ramadan Detection ----
 hijri_month = None
 hijri_day = None
-if timings:
-    hijri_month = int(timings.get('hijri', {}).get('month', {}).get('number', 0))
-    hijri_day = int(timings.get('hijri', {}).get('day', 0))
+if timings and 'hijri' in timings:
+    try:
+        hijri_month = int(timings['hijri']['month']['number'])
+        hijri_day = int(timings['hijri']['day'])
+    except:
+        pass
 is_ramadan_active = is_ramadan(hijri_month) if hijri_month else False
 ramadan_info = get_ramadan_info(hijri_day, hijri_month) if is_ramadan_active else None
 
@@ -191,7 +243,7 @@ for name, j_dt in jamaat_schedule:
         break
 
 # ============================================================
-# 7. CINEMATIC SKY BACKGROUND
+# 8. CINEMATIC SKY BACKGROUND
 # ============================================================
 def get_sky_gradient():
     t = current_time_dt.time()
@@ -220,28 +272,25 @@ def get_sky_gradient():
 bg_style = get_sky_gradient()
 
 # ============================================================
-# 8. DYNAMIC BISMILLAH COLOR (High Contrast: Gold on Blue)
+# 9. DYNAMIC BISMILLAH COLOR
 # ============================================================
 def get_bismillah_color():
     t = current_time_dt.time()
     sunrise_t = sunrise.time()
     maghrib_t = maghrib.time()
     
-    # Daytime (bright blue sky): GOLD for high contrast
     if sunrise_t <= t < maghrib_t:
         return "#fbbf24", "0 0 40px rgba(251, 191, 36, 0.8)"
-    # Golden hour (sunrise/sunset): Deep Amber
     elif (t >= sunrise_t and t < sunrise_t + timedelta(hours=1)) or \
          (t >= maghrib_t - timedelta(hours=1) and t < maghrib_t):
         return "#f59e0b", "0 0 40px rgba(245, 158, 11, 0.9)"
-    # Night: Emerald green (original)
     else:
         return "#34d399", "0 0 18px #34d399aa"
 
 bismillah_color, bismillah_shadow = get_bismillah_color()
 
 # ============================================================
-# 9. CSS THEME VARIABLES
+# 10. CSS THEME VARIABLES
 # ============================================================
 card_bg = "linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(11, 15, 25, 0.8))"
 card_border = "rgba(255, 255, 255, 0.15)"
@@ -256,7 +305,7 @@ ticker_bg = "rgba(9, 18, 29, 0.7)"
 ticker_border = "rgba(16, 185, 129, 0.6)"
 
 # ============================================================
-# 10. ROTATING NAMES (99 Names of Allah & Prophet)
+# 11. ROTATING NAMES
 # ============================================================
 names_of_allah = [
     ("الرَّحْمَنُ", "AR-RAHMAAN"), ("الرَّحِيمُ", "AR-RAHEEM"), ("الْمَلِكُ", "AL-MALIK"),
@@ -334,7 +383,7 @@ active_item_color = rotation_colors[color_index]
 active_muhammad_color = rotation_colors[muhammad_color_index]
 
 # ============================================================
-# 11. DYNAMIC CSS + SKY BACKGROUND
+# 12. DYNAMIC CSS + SKY BACKGROUND
 # ============================================================
 st.markdown(f"""
 <style>
@@ -411,6 +460,31 @@ st.markdown(f"""
     }}
     .clock-date {{ font-size: 1.6rem; color: {text_primary}; font-weight: 700; }}
     .hijri-date {{ font-size: 1.7rem; color: {hijri_color}; font-weight: 800; }}
+    
+    /* Weather Display */
+    .weather-box {{
+        display: inline-block;
+        background: {card_bg};
+        backdrop-filter: blur(10px);
+        border: 1px solid {card_border};
+        border-radius: 12px;
+        padding: 8px 16px;
+        margin-top: 4px;
+        text-align: center;
+    }}
+    .weather-temp {{
+        font-family: 'Orbitron', monospace;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: {led_amber};
+    }}
+    .weather-condition {{
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: {text_secondary};
+        margin-left: 8px;
+    }}
+
     .temp-badge {{
         display: inline-block; font-family: 'Orbitron', monospace; font-size: 1.25rem; font-weight: 700;
         color: {led_amber}; background: {card_bg}; border: 1px solid {card_border}; padding: 4px 18px; border-radius: 12px; margin-top: 4px;
@@ -442,7 +516,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# 12. BISMILLAH HEADER
+# 13. BISMILLAH HEADER
 # ============================================================
 st.markdown("""
 <div class="bismillah-static-container">
@@ -459,7 +533,7 @@ if ramadan_info:
     """, unsafe_allow_html=True)
 
 # ============================================================
-# 13. TICKER (Continuous Scrolling with Zoom Effect)
+# 14. TICKER
 # ============================================================
 duas_list = [
     "لَا إِلٰهَ إِلَّا اللهُ مُحَمَّدٌ رَسُولُ اللهِ",
@@ -557,7 +631,7 @@ ticker_html = f"""
 components.html(ticker_html, height=110)
 
 # ============================================================
-# 14. MAIN LAYOUT (3 Columns)
+# 15. MAIN LAYOUT (3 Columns)
 # ============================================================
 col_left, col_center, col_right = st.columns([1.2, 2.6, 1.2])
 
@@ -597,7 +671,10 @@ with col_center:
         <div class="clock-date">{date_str}</div>
         <div class="hijri-date">{hijri_date}</div>
         <div class="clock-time">{time_str}</div>
-        <div class="temp-badge">🌡️ {temp_display}</div>
+        <div class="weather-box">
+            <span class="weather-temp">{temp_display}</span>
+            <span class="weather-condition">{condition}</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -643,7 +720,7 @@ with col_right:
     st.image("Kaaba.jpg", use_container_width=True)
 
 # ============================================================
-# 15. CONTINUOUS REFRESH (For live clock & countdown)
+# 16. CONTINUOUS REFRESH
 # ============================================================
 time.sleep(1)
 st.rerun()

@@ -3,9 +3,9 @@ import streamlit.components.v1 as components
 from datetime import datetime, timedelta
 import pytz
 import time
-import urllib.request
 import json
 import os
+import requests
 
 st.set_page_config(
     page_title="Mosque Digital Dashboard",
@@ -19,9 +19,9 @@ st.set_page_config(
 @st.cache_data(ttl=86400)
 def get_location():
     try:
-        req = urllib.request.Request("http://ip-api.com/json/", headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=5) as response:
-            data = json.loads(response.read().decode())
+        response = requests.get("http://ip-api.com/json/", timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
+        if response.status_code == 200:
+            data = response.json()
             if data['status'] == 'success':
                 return data['city'], data['country'], float(data['lat']), float(data['lon'])
     except:
@@ -31,87 +31,151 @@ def get_location():
 city, country, LAT, LON = get_location()
 
 # ============================================================
-# 2. WEATHER (Current Temperature + Condition)
+# 2. WEATHER (Open-Meteo API with fallback)
 # ============================================================
-@st.cache_data(ttl=3600)  # Cache for 1 hour
-def get_weather():
+@st.cache_data(ttl=1800)
+def get_live_temp():
     try:
         url = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&current_weather=true&timezone=auto"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=5) as response:
-            data = json.loads(response.read().decode())
+        response = requests.get(url, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
+        if response.status_code == 200:
+            data = response.json()
+            temp_c = int(round(data['current_weather']['temperature']))
+            weathercode = data['current_weather']['weathercode']
             
-            # Current weather
-            current = data['current_weather']
-            temp = int(round(current['temperature']))
-            weathercode = current['weathercode']
-            
-            # Map weather code to condition with emoji
             conditions = {
-                0: "☀️ Clear Sky",
-                1: "🌤️ Mostly Clear",
-                2: "⛅ Partly Cloudy",
-                3: "☁️ Overcast",
-                45: "🌫️ Foggy",
-                48: "🌫️ Foggy",
-                51: "🌧️ Light Drizzle",
-                53: "🌧️ Drizzle",
-                55: "🌧️ Heavy Drizzle",
-                61: "🌧️ Light Rain",
-                63: "🌧️ Rain",
-                65: "🌧️ Heavy Rain",
-                71: "❄️ Light Snow",
-                73: "❄️ Snow",
-                75: "❄️ Heavy Snow",
-                80: "🌧️ Light Rain Showers",
-                81: "🌧️ Rain Showers",
-                82: "🌧️ Heavy Rain Showers",
-                95: "⛈️ Thunderstorm",
-                96: "⛈️ Thunderstorm with Hail",
-                99: "⛈️ Thunderstorm with Hail"
+                0: "☀️ Clear Sky", 1: "🌤️ Mostly Clear", 2: "⛅ Partly Cloudy",
+                3: "☁️ Overcast", 45: "🌫️ Foggy", 48: "🌫️ Foggy",
+                51: "🌧️ Light Drizzle", 53: "🌧️ Drizzle", 55: "🌧️ Heavy Drizzle",
+                61: "🌧️ Light Rain", 63: "🌧️ Rain", 65: "🌧️ Heavy Rain",
+                71: "❄️ Light Snow", 73: "❄️ Snow", 75: "❄️ Heavy Snow",
+                80: "🌧️ Light Rain Showers", 81: "🌧️ Rain Showers", 82: "🌧️ Heavy Rain Showers",
+                95: "⛈️ Thunderstorm", 96: "⛈️ Thunderstorm", 99: "⛈️ Thunderstorm"
             }
             condition = conditions.get(weathercode, "🌡️ Unknown")
-            
-            return temp, condition
+            return f"{temp_c}°C", condition
     except Exception as e:
         print(f"Weather API error: {e}")
-        return 30, "🌡️ Unavailable"
-
-temp, condition = get_weather()
-temp_display = f"{temp}°C"
-
-# ============================================================
-# 3. HIJRI DATE FETCHER (With Fallback)
-# ============================================================
-def get_hijri_date():
+    
+    # Fallback: wttr.in
     try:
-        url = "http://api.aladhan.com/v1/gToH?date=01-01-2020"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=5) as response:
-            data = json.loads(response.read().decode())
+        url = f"https://wttr.in/{city}?format=%t"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            temp_str = response.text.strip()
+            return temp_str, "🌡️ Live"
+    except:
+        pass
+    
+    return "30°C", "🌡️ Unavailable"
+
+# ============================================================
+# 3. HIJRI DATE (Primary + Secondary APIs - CORRECTED)
+# ============================================================
+@st.cache_data(ttl=3600)
+def get_hijri_date_dynamic():
+    # PRIMARY: Get current Hijri date from Aladhan timings endpoint
+    try:
+        url = f"http://api.aladhan.com/v1/timingsByCity?city={city}&country={country}&method=1"
+        response = requests.get(url, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
+        if response.status_code == 200:
+            data = response.json()
+            if data['code'] == 200:
+                hijri = data['data']['date']['hijri']
+                return f"{hijri['day']} {hijri['month']['en']} {hijri['year']} AH"
+    except Exception as e:
+        print(f"Primary Hijri API error: {e}")
+    
+    # SECONDARY: Use the current date endpoint
+    try:
+        url = "https://api.aladhan.com/v1/currentDate"
+        response = requests.get(url, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
+        if response.status_code == 200:
+            data = response.json()
             if data['code'] == 200:
                 hijri = data['data']['hijri']
                 return f"{hijri['day']} {hijri['month']['en']} {hijri['year']} AH"
+    except Exception as e:
+        print(f"Secondary Hijri API error: {e}")
+    
+    # TERTIARY: Use Aladhan's calendar endpoint for today's date
+    try:
+        today = datetime.now()
+        date_str = today.strftime("%d-%m-%Y")
+        url = f"https://api.aladhan.com/v1/gToH/{date_str}"
+        response = requests.get(url, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
+        if response.status_code == 200:
+            data = response.json()
+            if data['code'] == 200:
+                hijri = data['data']['hijri']
+                return f"{hijri['day']} {hijri['month']['en']} {hijri['year']} AH"
+    except Exception as e:
+        print(f"Tertiary Hijri API error: {e}")
+    
+    # QUATERNARY: Use a different method parameter
+    try:
+        url = f"https://api.aladhan.com/v1/timingsByCity?city={city}&country={country}&method=2"
+        response = requests.get(url, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
+        if response.status_code == 200:
+            data = response.json()
+            if data['code'] == 200:
+                hijri = data['data']['date']['hijri']
+                return f"{hijri['day']} {hijri['month']['en']} {hijri['year']} AH"
+    except Exception as e:
+        print(f"Quaternary Hijri API error: {e}")
+    
+    # FINAL FALLBACK: Calculate approximate Hijri date dynamically
+    # This updates daily, so it's still "dynamic"
+    try:
+        today = datetime.now()
+        # Islamic New Year 1446 was approximately July 7, 2024
+        base_date = datetime(2024, 7, 7)
+        days_since = (today - base_date).days
+        
+        if days_since < 0:
+            base_date = datetime(2023, 7, 19)
+            days_since = (today - base_date).days
+        
+        hijri_year = 1446 + (days_since // 354)
+        day_of_year = days_since % 354
+        
+        month_lengths = [30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 30, 29]
+        month_names = ["Muharram", "Safar", "Rabi' al-Awwal", "Rabi' al-Thani", "Jumada al-Ula", 
+                       "Jumada al-Thani", "Rajab", "Sha'ban", "Ramadan", "Shawwal", "Dhul-Qa'dah", "Dhul-Hijjah"]
+        
+        hijri_month = 0
+        for i, days_in_month in enumerate(month_lengths):
+            if day_of_year < days_in_month:
+                hijri_month = i
+                break
+            day_of_year -= days_in_month
+        else:
+            hijri_month = 0
+            day_of_year = 0
+        
+        hijri_day = day_of_year + 1
+        month_name = month_names[hijri_month] if hijri_month < len(month_names) else "Rabi' al-Awwal"
+        
+        return f"{hijri_day} {month_name} {hijri_year} AH (approx)"
     except:
-        pass
-    return "27 Rabi' al-Awwal 1448 AH"
+        # ULTIMATE FALLBACK: If everything fails, show a reasonable date
+        return "27 Rabi' al-Awwal 1448 AH"
 
 # ============================================================
-# 4. PRAYER TIMES & HIJRI
+# 4. PRAYER TIMES
 # ============================================================
 @st.cache_data(ttl=3600)
 def get_prayer_data():
     try:
         url = f"http://api.aladhan.com/v1/timingsByCity?city={city}&country={country}&method=1&school=1"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=5) as response:
-            res = json.loads(response.read().decode())['data']
+        response = requests.get(url, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
+        if response.status_code == 200:
+            res = response.json()['data']
             timings = res['timings']
-            hijri = res['date']['hijri']
-            hijri_str = f"{hijri['day']} {hijri['month']['en']} {hijri['year']} AH"
-            return timings, hijri_str
-    except:
-        return None, get_hijri_date()
+            return timings
+    except Exception as e:
+        print(f"Prayer API error: {e}")
+    return None
 
 def parse_time(time_str):
     return datetime.strptime(time_str.split(" ")[0], "%H:%M")
@@ -123,23 +187,19 @@ def add_minutes(dt_obj, mins):
     return dt_obj + timedelta(minutes=mins)
 
 # ============================================================
-# 5. RAMADAN DETECTION
-# ============================================================
-def is_ramadan(hijri_month):
-    return hijri_month == 9
-
-def get_ramadan_info(hijri_day, hijri_month):
-    if hijri_month == 9:
-        if hijri_day <= 29:
-            return f"🌙 Ramadan {hijri_day} | Suhoor ends before Fajr | Iftar at Maghrib"
-    return None
-
-# ============================================================
-# 6. FETCH & COMPUTE SCHEDULE
+# 5. FETCH ALL DATA
 # ============================================================
 now_hyd = datetime.now(pytz.timezone("Asia/Kolkata"))
 current_time_dt = datetime.strptime(now_hyd.strftime("%H:%M:%S"), "%H:%M:%S")
-timings, hijri_date = get_prayer_data()
+
+# Get weather
+temp_display, condition = get_live_temp()
+
+# Get Hijri date
+hijri_date = get_hijri_date_dynamic()
+
+# Get prayer times
+timings = get_prayer_data()
 
 if timings:
     fajr_start = parse_time(timings['Fajr'])
@@ -157,7 +217,7 @@ else:
     isha = parse_time("19:30")
 
 # ============================================================
-# 7. FIXED "ROUND OF TIMINGS" FOR HYDERABAD
+# 6. FIXED "ROUND OF TIMINGS" FOR HYDERABAD
 # ============================================================
 
 # ---- FAJR (Fixed) ----
@@ -203,18 +263,6 @@ ishraq_str = format_12hr(add_minutes(sunrise, 15))
 chast_str = format_12hr(add_minutes(sunrise, 120))
 sunrise_str = format_12hr(sunrise)
 
-# ---- Ramadan Detection ----
-hijri_month = None
-hijri_day = None
-if timings and 'hijri' in timings:
-    try:
-        hijri_month = int(timings['hijri']['month']['number'])
-        hijri_day = int(timings['hijri']['day'])
-    except:
-        pass
-is_ramadan_active = is_ramadan(hijri_month) if hijri_month else False
-ramadan_info = get_ramadan_info(hijri_day, hijri_month) if is_ramadan_active else None
-
 # ---- JAMA'AT LIST for Countdown ----
 is_friday = (now_hyd.weekday() == 4)
 jamaat_schedule = [
@@ -243,7 +291,7 @@ for name, j_dt in jamaat_schedule:
         break
 
 # ============================================================
-# 8. CINEMATIC SKY BACKGROUND
+# 7. CINEMATIC SKY BACKGROUND
 # ============================================================
 def get_sky_gradient():
     t = current_time_dt.time()
@@ -272,7 +320,7 @@ def get_sky_gradient():
 bg_style = get_sky_gradient()
 
 # ============================================================
-# 9. DYNAMIC BISMILLAH COLOR
+# 8. DYNAMIC BISMILLAH COLOR
 # ============================================================
 def get_bismillah_color():
     t = current_time_dt.time()
@@ -290,7 +338,7 @@ def get_bismillah_color():
 bismillah_color, bismillah_shadow = get_bismillah_color()
 
 # ============================================================
-# 10. CSS THEME VARIABLES
+# 9. CSS THEME VARIABLES
 # ============================================================
 card_bg = "linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(11, 15, 25, 0.8))"
 card_border = "rgba(255, 255, 255, 0.15)"
@@ -305,7 +353,7 @@ ticker_bg = "rgba(9, 18, 29, 0.7)"
 ticker_border = "rgba(16, 185, 129, 0.6)"
 
 # ============================================================
-# 11. ROTATING NAMES
+# 10. ROTATING NAMES (99 Names of Allah & Prophet)
 # ============================================================
 names_of_allah = [
     ("الرَّحْمَنُ", "AR-RAHMAAN"), ("الرَّحِيمُ", "AR-RAHEEM"), ("الْمَلِكُ", "AL-MALIK"),
@@ -383,7 +431,7 @@ active_item_color = rotation_colors[color_index]
 active_muhammad_color = rotation_colors[muhammad_color_index]
 
 # ============================================================
-# 12. DYNAMIC CSS + SKY BACKGROUND
+# 11. DYNAMIC CSS + SKY BACKGROUND
 # ============================================================
 st.markdown(f"""
 <style>
@@ -396,27 +444,6 @@ st.markdown(f"""
     }}
     header, footer {{visibility: hidden;}}
     .block-container {{ padding-top: 0.5rem !important; padding-bottom: 0rem !important; }}
-
-    /* Ramadan Banner */
-    .ramadan-banner {{
-        background: linear-gradient(135deg, rgba(52, 211, 153, 0.2), rgba(16, 185, 129, 0.1));
-        border: 2px solid #34d399;
-        border-radius: 12px;
-        padding: 10px;
-        margin-bottom: 12px;
-        text-align: center;
-        animation: ramadanPulse 2s ease-in-out infinite alternate;
-    }}
-    .ramadan-text {{
-        font-family: 'Amiri', serif;
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #34d399;
-    }}
-    @keyframes ramadanPulse {{
-        0% {{ opacity: 0.8; transform: scale(0.99); }}
-        100% {{ opacity: 1; transform: scale(1.01); }}
-    }}
 
     .bismillah-static-container {{
         width: 100%; text-align: center; padding: 10px 0 25px 0; margin-bottom: 10px;
@@ -485,10 +512,6 @@ st.markdown(f"""
         margin-left: 8px;
     }}
 
-    .temp-badge {{
-        display: inline-block; font-family: 'Orbitron', monospace; font-size: 1.25rem; font-weight: 700;
-        color: {led_amber}; background: {card_bg}; border: 1px solid {card_border}; padding: 4px 18px; border-radius: 12px; margin-top: 4px;
-    }}
     .solar-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }}
     .solar-card {{
         background: {card_bg}; backdrop-filter: blur(10px); border: 1px solid {card_border};
@@ -516,7 +539,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# 13. BISMILLAH HEADER
+# 12. BISMILLAH HEADER
 # ============================================================
 st.markdown("""
 <div class="bismillah-static-container">
@@ -524,16 +547,8 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ---- Ramadan Banner (if active) ----
-if ramadan_info:
-    st.markdown(f"""
-    <div class="ramadan-banner">
-        <div class="ramadan-text">🌙 {ramadan_info}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
 # ============================================================
-# 14. TICKER
+# 13. TICKER (Continuous Scrolling with Zoom Effect)
 # ============================================================
 duas_list = [
     "لَا إِلٰهَ إِلَّا اللهُ مُحَمَّدٌ رَسُولُ اللهِ",
@@ -631,7 +646,7 @@ ticker_html = f"""
 components.html(ticker_html, height=110)
 
 # ============================================================
-# 15. MAIN LAYOUT (3 Columns)
+# 14. MAIN LAYOUT (3 Columns)
 # ============================================================
 col_left, col_center, col_right = st.columns([1.2, 2.6, 1.2])
 
@@ -720,7 +735,7 @@ with col_right:
     st.image("Kaaba.jpg", use_container_width=True)
 
 # ============================================================
-# 16. CONTINUOUS REFRESH
+# 15. CONTINUOUS REFRESH
 # ============================================================
 time.sleep(1)
 st.rerun()

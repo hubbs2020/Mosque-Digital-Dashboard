@@ -60,7 +60,8 @@ def get_prayer_data():
             hijri_str = f"{hijri['day']} {hijri['month']['en']} {hijri['year']} AH"
             return timings, hijri_str
     except:
-        return None, ""
+        # FALLBACK: Hardcode a default Hijri date if API fails
+        return None, "9 Rabi' al-Awwal 1448 AH"
 
 def parse_time(time_str):
     return datetime.strptime(time_str.split(" ")[0], "%H:%M")
